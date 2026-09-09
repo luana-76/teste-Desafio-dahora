@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env.local
+
+# Prisma / SQLite
+backend/prisma/dev.db
+backend/prisma/dev.db-journal
+backend/prisma/migrations/
+
+# Logs
+npm-debug.log*

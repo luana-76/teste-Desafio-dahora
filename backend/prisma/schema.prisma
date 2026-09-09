@@ -1,0 +1,26 @@
+// Schema do Prisma - Monitoramento de Pedidos em Tempo Real
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Status possíveis (controlados em src/utils/orderStatus.js):
+// PENDENTE -> EM_PREPARO -> PRONTO -> ENTREGUE
+// PENDENTE/EM_PREPARO/PRONTO -> CANCELADO
+model Order {
+  id         String   @id @default(uuid())
+  cliente    String
+  itens      String
+  valor      Float    @default(0)
+  status     String   @default("PENDENTE")
+  observacao String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([status])
+}
