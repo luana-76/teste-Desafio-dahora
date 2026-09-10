@@ -14,7 +14,17 @@ export default function Dashboard() {
   useEffect(() => {
     api
       .get('/orders')
-      .then((res) => setOrders(res.data))
+      .then((res) => {
+        // Proteção: se a API responder algo que não é uma lista (ex: URL
+        // errada apontando para outro serviço, HTML de erro, etc.), não
+        // deixamos isso quebrar a tela inteira.
+        if (Array.isArray(res.data)) {
+          setOrders(res.data);
+        } else {
+          console.error('Resposta inesperada de GET /orders:', res.data);
+          setErro('O servidor respondeu algo inesperado. Confira a URL configurada em VITE_API_URL.');
+        }
+      })
       .catch(() => setErro('Não foi possível carregar os pedidos. Verifique se o backend está rodando.'))
       .finally(() => setCarregando(false));
 
