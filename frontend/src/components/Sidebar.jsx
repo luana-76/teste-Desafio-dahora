@@ -95,9 +95,9 @@ function IconSair() {
 }
 
 const NAV_LINKS = [
-  { href: '#coluna-PENDENTE', label: 'Desafios', Icon: IconAFazer },
+  { href: '#/desafios', label: 'Desafios', Icon: IconAFazer },
   { href: '#topo', label: 'Painel', Icon: IconPainel },
-    { href: '#', label: 'Equipes', Icon: IconPerfil },
+    { href: '#/equipes', label: 'Equipes', Icon: IconPerfil },
   { href: '#/ranking', label: 'Ranking', Icon: IconRanking },
 ];
 
