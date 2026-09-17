@@ -7,6 +7,7 @@ router.get('/', ordersController.index);
 router.get('/ranking', ordersController.ranking);
 router.get('/:id', ordersController.show);
 router.post('/', ordersController.store);
+router.patch('/:id', ordersController.update);
 router.patch('/:id/status', ordersController.updateStatus);
 router.delete('/:id', ordersController.destroy);
 

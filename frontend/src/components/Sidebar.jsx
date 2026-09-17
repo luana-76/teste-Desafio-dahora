@@ -1,3 +1,5 @@
+import { sair } from '../services/auth';
+
 function IconPainel() {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
@@ -93,17 +95,21 @@ function IconSair() {
 }
 
 const NAV_LINKS = [
+  { href: '#coluna-PENDENTE', label: 'Desafios', Icon: IconAFazer },
   { href: '#topo', label: 'Painel', Icon: IconPainel },
-  { href: '#coluna-PENDENTE', label: 'A fazer', Icon: IconAFazer },
-  { href: '#coluna-EM_PREPARO', label: 'Em andamento', Icon: IconAndamento },
-  { href: '#coluna-ENTREGUE', label: 'Concluídos', Icon: IconConcluidos },
+    { href: '#', label: 'Equipes', Icon: IconPerfil },
   { href: '#/ranking', label: 'Ranking', Icon: IconRanking },
-  { href: '#/perfil', label: 'Perfil', Icon: IconPerfil },
 ];
 
-export default function Sidebar({ currentHash = '' }) {
+export default function Sidebar({ currentHash = '', onSair }) {
   // Sem hash ainda (primeiro load) conta como "Painel".
   const hashAtivo = currentHash || '#topo';
+
+  function handleSair() {
+    sair();
+    onSair?.();
+    window.location.hash = '#/entrar';
+  }
 
   return (
     <aside className="sidebar">
@@ -132,7 +138,7 @@ export default function Sidebar({ currentHash = '' }) {
         ))}
       </nav>
 
-      <button type="button" className="sidebar-sair">
+      <button type="button" className="sidebar-sair" onClick={handleSair}>
         <IconSair />
         Sair
       </button>

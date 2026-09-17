@@ -76,6 +76,26 @@ export async function createOrder({ cliente, itens, valor, observacao }) {
   });
 }
 
+export async function updateOrder(id, { cliente, itens, valor, observacao }) {
+  if (!cliente?.trim() || !itens?.trim()) {
+    const err = new Error('Os campos "cliente" e "itens" são obrigatórios.');
+    err.status = 400;
+    throw err;
+  }
+
+  await getOrderById(id); // garante que existe (lança 404 se não)
+
+  return prisma.order.update({
+    where: { id },
+    data: {
+      cliente: cliente.trim(),
+      itens: itens.trim(),
+      valor: valor ? Number(valor) : 0,
+      observacao: observacao?.trim() || null,
+    },
+  });
+}
+
 export async function updateOrderStatus(id, status) {
   if (!isValidStatus(status)) {
     const err = new Error(`Status inválido. Use um dos: ${ORDER_STATUSES.join(', ')}`);

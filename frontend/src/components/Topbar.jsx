@@ -1,36 +1,15 @@
-import { useEffect, useState } from 'react';
-import { fetchWeather } from '../services/weather';
 import CountdownTimer from './CountdownTimer';
+import PontoWidget from './PontoWidget';
+import { usuarioAtual } from '../services/auth';
 
 export default function Topbar() {
-  const [clima, setClima] = useState(null);
-  const [climaErro, setClimaErro] = useState(false);
-
-  useEffect(() => {
-    let ativo = true;
-    fetchWeather()
-      .then((dados) => ativo && setClima(dados))
-      .catch(() => ativo && setClimaErro(true));
-    return () => {
-      ativo = false;
-    };
-  }, []);
+  const usuario = usuarioAtual();
 
   return (
     <div className="topbar">
       <CountdownTimer />
 
-      <div className="weather-chip" title={clima?.cidade}>
-        {clima ? (
-          <>
-            <span className="weather-icon">{clima.icone}</span>
-            <span className="weather-temp">{clima.temperatura}°C</span>
-            <span className="weather-desc">{clima.descricao}</span>
-          </>
-        ) : (
-          <span className="weather-desc">{climaErro ? 'Clima indisponível' : 'Consultando o tempo…'}</span>
-        )}
-      </div>
+      <PontoWidget usuario={usuario} />
 
       <a href="#/perfil" className="avatar" title="Meu perfil" aria-label="Ir para meu perfil">
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">

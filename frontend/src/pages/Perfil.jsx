@@ -1,18 +1,13 @@
 import { useEffect, useState } from 'react';
 import api from '../services/api';
+import { usuarioAtual, atualizarUsuarioAtual } from '../services/auth';
 import { iniciais, corAvatar } from '../utils/avatar';
 
-// Não existe autenticação no app: guardamos o "perfil" localmente no
-// navegador e cruzamos com os pedidos que têm esse mesmo nome em "cliente".
-const CHAVE_NOME = 'desafio-dahora:perfil-nome';
-const CHAVE_BIO = 'desafio-dahora:perfil-bio';
-
 export default function Perfil() {
-  const [nome, setNome] = useState(() => localStorage.getItem(CHAVE_NOME) || '');
-  const [bio, setBio] = useState(() => localStorage.getItem(CHAVE_BIO) || '');
-  const [editando, setEditando] = useState(() => !localStorage.getItem(CHAVE_NOME));
-  const [nomeRascunho, setNomeRascunho] = useState(nome);
-  const [bioRascunho, setBioRascunho] = useState(bio);
+  const [usuario, setUsuario] = useState(() => usuarioAtual());
+  const [editando, setEditando] = useState(false);
+  const [nomeRascunho, setNomeRascunho] = useState(usuario?.nome || '');
+  const [bioRascunho, setBioRascunho] = useState(usuario?.bio || '');
 
   const [pedidos, setPedidos] = useState([]);
   const [carregando, setCarregando] = useState(true);
@@ -31,19 +26,24 @@ export default function Perfil() {
     const nomeFinal = nomeRascunho.trim();
     if (!nomeFinal) return;
     const bioFinal = bioRascunho.trim();
-    localStorage.setItem(CHAVE_NOME, nomeFinal);
-    localStorage.setItem(CHAVE_BIO, bioFinal);
-    setNome(nomeFinal);
-    setBio(bioFinal);
+    const atualizado = atualizarUsuarioAtual({ nome: nomeFinal, bio: bioFinal });
+    setUsuario(atualizado);
     setEditando(false);
   }
 
   function cancelarEdicao() {
-    setNomeRascunho(nome);
-    setBioRascunho(bio);
+    setNomeRascunho(usuario?.nome || '');
+    setBioRascunho(usuario?.bio || '');
     setEditando(false);
   }
 
+  function iniciarEdicao() {
+    setNomeRascunho(usuario?.nome || '');
+    setBioRascunho(usuario?.bio || '');
+    setEditando(true);
+  }
+
+  const nome = usuario?.nome || '';
   const minhas = nome
     ? pedidos.filter((p) => p.cliente.trim().toLowerCase() === nome.trim().toLowerCase())
     : [];
@@ -86,18 +86,21 @@ export default function Perfil() {
             </label>
             <div className="profile-form-actions">
               <button type="submit">Salvar perfil</button>
-              {nome && (
-                <button type="button" className="profile-cancelar" onClick={cancelarEdicao}>
-                  Cancelar
-                </button>
-              )}
+              <button type="button" className="profile-cancelar" onClick={cancelarEdicao}>
+                Cancelar
+              </button>
             </div>
           </form>
         ) : (
           <div className="profile-info">
             <h2>{nome}</h2>
-            {bio ? <p className="profile-bio">{bio}</p> : <p className="profile-bio profile-bio-vazia">Sem bio ainda.</p>}
-            <button type="button" className="profile-editar" onClick={() => setEditando(true)}>
+            {usuario?.email && <p className="profile-email">{usuario.email}</p>}
+            {usuario?.bio ? (
+              <p className="profile-bio">{usuario.bio}</p>
+            ) : (
+              <p className="profile-bio profile-bio-vazia">Sem bio ainda.</p>
+            )}
+            <button type="button" className="profile-editar" onClick={iniciarEdicao}>
               Editar perfil
             </button>
           </div>

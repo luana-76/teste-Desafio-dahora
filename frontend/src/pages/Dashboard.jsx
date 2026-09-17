@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback } from 'react';
 import api from '../services/api';
 import socket from '../services/socket';
 import OrderColumn from '../components/OrderColumn';
-import NewOrderForm from '../components/NewOrderForm';
 import { STATUS_FLOW } from '../constants/orderStatus';
 
 export default function Dashboard() {
@@ -64,19 +63,19 @@ export default function Dashboard() {
     // A atualização da lista chega via evento "order:created" do socket
   }, []);
 
-  const advanceOrder = useCallback(async (id, status) => {
-    await api.patch(`/orders/${id}/status`, { status });
+  const editOrder = useCallback(async (id, data) => {
+    await api.patch(`/orders/${id}`, data);
   }, []);
 
-  const cancelOrder = useCallback(async (id) => {
-    await api.patch(`/orders/${id}/status`, { status: 'CANCELADO' });
+  const advanceOrder = useCallback(async (id, status) => {
+    await api.patch(`/orders/${id}/status`, { status });
   }, []);
 
   const deleteOrder = useCallback(async (id) => {
     await api.delete(`/orders/${id}`);
   }, []);
 
-  const columns = [...STATUS_FLOW, 'CANCELADO'];
+  const columns = STATUS_FLOW;
 
   return (
     <div className="dashboard" id="topo">
@@ -87,24 +86,25 @@ export default function Dashboard() {
         </span>
       </header>
 
-      <NewOrderForm onCreate={createOrder} />
-
       {erro && <p className="error-banner">{erro}</p>}
       {carregando ? (
         <p className="loading">Carregando pedidos...</p>
       ) : (
-        <div className="board">
-          {columns.map((status) => (
-            <div id={`coluna-${status}`} key={status} className="board-slot">
-              <OrderColumn
-                status={status}
-                orders={orders.filter((o) => o.status === status)}
-                onAdvance={advanceOrder}
-                onCancel={cancelOrder}
-                onDelete={deleteOrder}
-              />
-            </div>
-          ))}
+        <div className="board-canvas">
+          <div className="board">
+            {columns.map((status) => (
+              <div id={`coluna-${status}`} key={status} className="board-slot">
+                <OrderColumn
+                  status={status}
+                  orders={orders.filter((o) => o.status === status)}
+                  onEdit={editOrder}
+                  onDelete={deleteOrder}
+                  onCreate={status === 'PENDENTE' ? createOrder : undefined}
+                  onMove={advanceOrder}
+                />
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

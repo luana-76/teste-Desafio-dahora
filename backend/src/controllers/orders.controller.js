@@ -44,6 +44,17 @@ export async function store(req, res) {
   }
 }
 
+export async function update(req, res) {
+  try {
+    const { id } = req.params;
+    const order = await ordersService.updateOrder(id, req.body);
+    emitOrderUpdated(order);
+    res.json(order);
+  } catch (err) {
+    handleError(res, err);
+  }
+}
+
 export async function updateStatus(req, res) {
   try {
     const { id } = req.params;
