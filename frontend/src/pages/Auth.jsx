@@ -7,6 +7,7 @@ export default function Auth({ onAutenticado }) {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
+  const [papel, setPapel] = useState('PARTICIPANTE');
   const [erro, setErro] = useState('');
   const [tremer, setTremer] = useState(false);
   const [enviando, setEnviando] = useState(false);
@@ -26,7 +27,7 @@ export default function Auth({ onAutenticado }) {
     setTimeout(() => setTremer(false), 420);
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     setErro('');
 
@@ -40,19 +41,16 @@ export default function Auth({ onAutenticado }) {
     }
 
     setEnviando(true);
-
-    // Pequeno delay proposital só pra dar tempo do spinner/animação aparecer.
-    setTimeout(() => {
-      try {
-        const usuario = modo === 'cadastro' ? cadastrar({ nome, email, senha }) : entrar({ email, senha });
-        setEnviando(false);
-        setSucesso(true);
-        setTimeout(() => onAutenticado(usuario), 650);
-      } catch (err) {
-        setEnviando(false);
-        dispararErro(err.message);
-      }
-    }, 500);
+    try {
+      const usuario =
+        modo === 'cadastro' ? await cadastrar({ nome, email, senha, papel }) : await entrar({ email, senha });
+      setEnviando(false);
+      setSucesso(true);
+      setTimeout(() => onAutenticado(usuario), 650);
+    } catch (err) {
+      setEnviando(false);
+      dispararErro(err.response?.data?.error || err.message);
+    }
   }
 
   return (
@@ -149,6 +147,16 @@ export default function Auth({ onAutenticado }) {
                   placeholder="••••••••"
                 />
               </label>
+
+              {modo === 'cadastro' && (
+                <label className="auth-campo" style={{ '--atraso': '150ms' }}>
+                  Eu sou
+                  <select value={papel} onChange={(e) => setPapel(e.target.value)}>
+                    <option value="PARTICIPANTE">Participante</option>
+                    <option value="MONITOR">Monitor</option>
+                  </select>
+                </label>
+              )}
 
               {modo === 'cadastro' && (
                 <label className="auth-campo" style={{ '--atraso': '180ms' }}>

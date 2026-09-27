@@ -1,138 +1,364 @@
-import { useEffect, useMemo, useState } from 'react';
-import api from '../services/api';
+import { useEffect, useState } from 'react';
+import socket from '../services/socket';
+import { usuarioAtual } from '../services/auth';
+import {
+  listarEquipes,
+  criarEquipe,
+  atualizarEquipe,
+  excluirEquipe,
+  adicionarParticipante,
+  removerParticipante,
+  LIMITE_MIN_PARTICIPANTES,
+  LIMITE_MAX_PARTICIPANTES,
+} from '../services/equipes';
+import { listarParticipantes } from '../services/participantes';
+import { PALETA_CORES } from '../utils/paletaCores';
+import { iniciais } from '../utils/avatar';
 
-const CORES = [
-  {
-    nome: 'Equipe Azul',
-    classe: 'azul',
-    cor: '#2f80ed',
-    descricao: 'Foco em organização e execução.',
-  },
-  {
-    nome: 'Equipe Laranja',
-    classe: 'laranja',
-    cor: '#f2994a',
-    descricao: 'Foco em criatividade e soluções.',
-  },
-  {
-    nome: 'Equipe Verde',
-    classe: 'verde',
-    cor: '#27ae60',
-    descricao: 'Foco em colaboração e resultados.',
-  },
-  {
-    nome: 'Equipe Roxa',
-    classe: 'roxa',
-    cor: '#9b51e0',
-    descricao: 'Foco em estratégia e inovação.',
-  },
-];
-
-function iniciais(nome) {
-  return nome
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((parte) => parte[0])
-    .join('')
-    .toUpperCase();
-}
+// Equipe de exemplo, só para preencher a tela quando ainda não existe
+// nenhuma outra equipe real além da do usuário logado — não vem do banco,
+// então nunca deve receber ações (adicionar/remover/excluir).
+const EQUIPE_EXEMPLO = {
+  id: 'exemplo-nebulosa',
+  nome: 'Equipe Nebulosa',
+  cor: 'laranja',
+  dentroDoLimite: true,
+  fake: true,
+  participantes: [
+    { id: 'exemplo-1', nome: 'Marina Alves' },
+    { id: 'exemplo-2', nome: 'Pedro Lima' },
+    { id: 'exemplo-3', nome: 'Sofia Rocha' },
+  ],
+};
 
 export default function Equipes() {
-  const [pedidos, setPedidos] = useState([]);
+  const usuario = usuarioAtual();
+  // Adicionar/remover participante e excluir equipe é ação só do
+  // Administrador — nem Monitor nem Participante têm esse controle.
+  const podeGerenciar = usuario?.papel === 'ADMIN';
+
+  const [equipes, setEquipes] = useState([]);
+  const [semEquipe, setSemEquipe] = useState([]);
   const [carregando, setCarregando] = useState(true);
+  const [erroGeral, setErroGeral] = useState(null);
+
+  const [formAberto, setFormAberto] = useState(false);
+  const [nome, setNome] = useState('');
+  const [cor, setCor] = useState(PALETA_CORES[0].chave);
   const [erro, setErro] = useState(null);
 
-  useEffect(() => {
-    api
-      .get('/orders')
-      .then((res) => {
-        if (Array.isArray(res.data)) {
-          setPedidos(res.data);
-        } else {
-          setErro('Não foi possível identificar os participantes.');
-        }
+  // A equipe do usuário logado vai em destaque no topo; o resto fica
+  // listado normalmente abaixo.
+  const minhaEquipe = usuario ? equipes.find((e) => e.participantes.some((p) => p.id === usuario.id)) : null;
+  const outrasEquipesReais = minhaEquipe ? equipes.filter((e) => e.id !== minhaEquipe.id) : equipes;
+  // Enquanto não existe nenhuma outra equipe cadastrada de verdade, mostra
+  // uma equipe de exemplo só pra ilustrar como a lista fica com mais times.
+  const outrasEquipes = outrasEquipesReais.length > 0 ? outrasEquipesReais : [EQUIPE_EXEMPLO];
+
+  function carregar() {
+    setCarregando(true);
+    Promise.all([listarEquipes(), listarParticipantes({}).catch(() => [])])
+      .then(([listaEquipes, todosParticipantes]) => {
+        setEquipes(listaEquipes);
+        setSemEquipe(todosParticipantes.filter((p) => !p.equipeId));
+        setErroGeral(null);
       })
-      .catch(() => setErro('Não foi possível carregar as equipes. Verifique se o backend está rodando.'))
+      .catch(() => setErroGeral('Não foi possível carregar as equipes. Verifique se o backend está rodando.'))
       .finally(() => setCarregando(false));
+  }
+
+  useEffect(() => {
+    carregar();
+    socket.on('equipe:created', carregar);
+    socket.on('equipe:updated', carregar);
+    socket.on('equipe:deleted', carregar);
+    return () => {
+      socket.off('equipe:created', carregar);
+      socket.off('equipe:updated', carregar);
+      socket.off('equipe:deleted', carregar);
+    };
   }, []);
 
-  const participantes = useMemo(() => {
-    const nomes = pedidos
-      .map((pedido) => pedido.cliente?.trim())
-      .filter(Boolean);
+  async function handleCriarEquipe(e) {
+    e.preventDefault();
+    try {
+      await criarEquipe({ nome, cor });
+      setNome('');
+      setCor(PALETA_CORES[0].chave);
+      setFormAberto(false);
+      setErro(null);
+      carregar();
+    } catch (err) {
+      setErro(err.response?.data?.error || err.message);
+    }
+  }
 
-    return [...new Map(nomes.map((nome) => [nome.toLowerCase(), nome])).values()]
-      .sort((a, b) => a.localeCompare(b, 'pt-BR'));
-  }, [pedidos]);
+  async function handleAtualizar(id, dados) {
+    try {
+      await atualizarEquipe(id, dados);
+      carregar();
+    } catch (err) {
+      setErroGeral(err.response?.data?.error || err.message);
+    }
+  }
 
-  const equipes = useMemo(() => {
-    return CORES.map((equipe, indice) => ({
-      ...equipe,
-      membros: participantes.filter((_, index) => index % CORES.length === indice),
-    }));
-  }, [participantes]);
+  async function handleExcluir(id) {
+    try {
+      await excluirEquipe(id);
+      carregar();
+    } catch (err) {
+      setErroGeral(err.response?.data?.error || err.message);
+    }
+  }
+
+  async function handleAdicionar(equipeId, participanteId) {
+    if (!participanteId) return;
+    try {
+      await adicionarParticipante(equipeId, participanteId);
+      carregar();
+    } catch (err) {
+      setErroGeral(err.response?.data?.error || err.message);
+    }
+  }
+
+  async function handleRemover(equipeId, participanteId) {
+    try {
+      await removerParticipante(equipeId, participanteId);
+      carregar();
+    } catch (err) {
+      setErroGeral(err.response?.data?.error || err.message);
+    }
+  }
 
   return (
     <div className="dashboard equipes">
-      <header className="equipes-header">
-        <div>
-          <h1>Equipes</h1>
-          <p className="equipes-subtitle">
-            Os participantes são organizados em equipes identificadas por cores.
-          </p>
-        </div>
-        <div className="equipes-total">
-          <strong>{participantes.length}</strong>
-          <span>participantes</span>
-        </div>
+      <header>
+        <h1>Equipes</h1>
+        <p className="page-subtitle">
+          Cada equipe tem entre {LIMITE_MIN_PARTICIPANTES} e {LIMITE_MAX_PARTICIPANTES} participantes e uma cor
+          própria (seção 9 do documento).
+        </p>
       </header>
 
-      {erro && <p className="error-banner">{erro}</p>}
-
-      {carregando ? (
-        <p className="loading">Carregando equipes...</p>
-      ) : (
-        <div className="equipes-grid">
-          {equipes.map((equipe) => (
-            <section key={equipe.nome} className={`equipe-card equipe-${equipe.classe}`}>
-              <div className="equipe-card-top">
-                <div className="equipe-cor" style={{ backgroundColor: equipe.cor }} />
-                <div>
-                  <h2>{equipe.nome}</h2>
-                  <p>{equipe.descricao}</p>
-                </div>
-                <span className="equipe-count">{equipe.membros.length}</span>
-              </div>
-
-              <div className="equipe-members">
-                {equipe.membros.length > 0 ? (
-                  equipe.membros.map((membro) => (
-                    <div className="equipe-member" key={membro}>
-                      <div className="equipe-avatar" style={{ backgroundColor: equipe.cor }}>
-                        {iniciais(membro)}
-                      </div>
-                      <span>{membro}</span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="equipe-empty">Nenhum participante nesta equipe.</div>
-                )}
-              </div>
-            </section>
-          ))}
+      {podeGerenciar && (
+        <div className="equipes-toolbar">
+          <button type="button" className="btn btn-primary" onClick={() => setFormAberto((v) => !v)}>
+            {formAberto ? 'Cancelar' : '+ Nova equipe'}
+          </button>
         </div>
       )}
 
-      <div className="equipes-legenda">
-        <span>Divisão atual:</span>
-        {CORES.map((equipe) => (
-          <span className="legenda-item" key={equipe.nome}>
-            <i style={{ backgroundColor: equipe.cor }} />
-            {equipe.nome}
-          </span>
-        ))}
+      {formAberto && (
+        <form className="equipe-form" onSubmit={handleCriarEquipe}>
+          <label>
+            Nome da equipe
+            <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Time Fênix" autoFocus required />
+          </label>
+
+          <div className="equipe-form-cores">
+            <span>Cor</span>
+            <div className="cor-swatches">
+              {PALETA_CORES.map((c) => (
+                <button
+                  key={c.chave}
+                  type="button"
+                  className={`cor-swatch${cor === c.chave ? ' cor-swatch-ativo' : ''}`}
+                  style={{ '--swatch': c.hex }}
+                  title={c.nome}
+                  onClick={() => setCor(c.chave)}
+                  aria-label={c.nome}
+                />
+              ))}
+            </div>
+          </div>
+
+          {erro && <p className="quick-add-card-erro">{erro}</p>}
+
+          <button type="submit" className="btn btn-primary btn-sm">
+            Criar equipe
+          </button>
+        </form>
+      )}
+
+      {erroGeral && <p className="error-banner">{erroGeral}</p>}
+
+      {carregando ? (
+        <p className="loading">Carregando equipes...</p>
+      ) : equipes.length === 0 ? (
+        <p className="empty">Nenhuma equipe criada ainda.</p>
+      ) : (
+        <>
+          {minhaEquipe && (
+            <div className="equipe-destaque-section">
+              <h2
+                className="equipe-secao-titulo-destaque"
+                style={{ '--equipe-destaque-cor': (PALETA_CORES.find((c) => c.chave === minhaEquipe.cor) || {}).hex }}
+              >
+                Sua equipe
+              </h2>
+              <EquipeCard
+                equipe={minhaEquipe}
+                podeGerenciar={podeGerenciar}
+                disponiveis={semEquipe}
+                onAdicionar={handleAdicionar}
+                onRemover={handleRemover}
+                onExcluir={handleExcluir}
+                onAtualizar={handleAtualizar}
+                destaque
+              />
+            </div>
+          )}
+
+          {outrasEquipes.length > 0 && (
+            <>
+              {minhaEquipe && <h2 className="equipe-secao-titulo">Outras equipes</h2>}
+              {outrasEquipesReais.length === 0 && (
+                <p className="equipe-secao-nota">
+                  Ainda não há outra equipe cadastrada — abaixo um exemplo de como ela apareceria aqui.
+                </p>
+              )}
+              <div className="equipes-grid">
+                {outrasEquipes.map((equipe) => (
+                  <EquipeCard
+                    key={equipe.id}
+                    equipe={equipe}
+                    podeGerenciar={podeGerenciar && !equipe.fake}
+                    disponiveis={semEquipe}
+                    onAdicionar={handleAdicionar}
+                    onRemover={handleRemover}
+                    onExcluir={handleExcluir}
+                    onAtualizar={handleAtualizar}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function EquipeCard({ equipe, podeGerenciar, disponiveis, onAdicionar, onRemover, onExcluir, onAtualizar, destaque = false }) {
+  const [selecionado, setSelecionado] = useState('');
+  const [editando, setEditando] = useState(false);
+  const [nomeEdicao, setNomeEdicao] = useState(equipe.nome);
+  const [corEdicao, setCorEdicao] = useState(equipe.cor);
+  const corInfo = PALETA_CORES.find((c) => c.chave === equipe.cor) || { hex: equipe.cor, nome: equipe.cor };
+  const totalParticipantes = equipe.participantes?.length ?? 0;
+  const noLimite = totalParticipantes >= 5;
+
+  function handleAdicionar(e) {
+    e.preventDefault();
+    if (!selecionado) return;
+    onAdicionar(equipe.id, selecionado);
+    setSelecionado('');
+  }
+
+  function handleSalvarEdicao(e) {
+    e.preventDefault();
+    if (!nomeEdicao.trim()) return;
+    onAtualizar(equipe.id, { nome: nomeEdicao, cor: corEdicao });
+    setEditando(false);
+  }
+
+  return (
+    <div className={`equipe-card${destaque ? ' equipe-card-destaque' : ''}`} style={{ '--equipe-cor': corInfo.hex }}>
+      {destaque && <span className="equipe-card-destaque-selo">Você está aqui</span>}
+      <div className="equipe-card-faixa" />
+      <div className="equipe-card-header">
+        <h2>{equipe.nome}</h2>
+        {podeGerenciar && (
+          <div className="equipe-card-header-acoes">
+            <button
+              type="button"
+              className="equipe-card-editar"
+              onClick={() => {
+                setNomeEdicao(equipe.nome);
+                setCorEdicao(equipe.cor);
+                setEditando((v) => !v);
+              }}
+              title="Editar equipe"
+            >
+              ✎
+            </button>
+            <button type="button" className="equipe-card-excluir" onClick={() => onExcluir(equipe.id)} title="Excluir equipe">
+              ×
+            </button>
+          </div>
+        )}
       </div>
+
+      {editando ? (
+        <form className="equipe-form equipe-form-edicao" onSubmit={handleSalvarEdicao}>
+          <label>
+            Nome da equipe
+            <input value={nomeEdicao} onChange={(e) => setNomeEdicao(e.target.value)} required autoFocus />
+          </label>
+          <div className="equipe-form-cores">
+            <span>Cor</span>
+            <div className="cor-swatches">
+              {PALETA_CORES.map((c) => (
+                <button
+                  key={c.chave}
+                  type="button"
+                  className={`cor-swatch${corEdicao === c.chave ? ' cor-swatch-ativo' : ''}`}
+                  style={{ '--swatch': c.hex }}
+                  title={c.nome}
+                  onClick={() => setCorEdicao(c.chave)}
+                  aria-label={c.nome}
+                />
+              ))}
+            </div>
+          </div>
+          <div className="trello-form-actions">
+            <button type="submit" className="btn btn-primary btn-sm">Salvar</button>
+            <button type="button" className="btn btn-outline btn-sm" onClick={() => setEditando(false)}>Cancelar</button>
+          </div>
+        </form>
+      ) : (
+        <>
+          <span className="equipe-card-tag">{corInfo.nome}</span>
+          {equipe.fake && <span className="equipe-card-tag equipe-card-tag-exemplo">Exemplo</span>}
+        </>
+      )}
+      {!equipe.dentroDoLimite && (
+        <p className="quick-add-card-erro">
+          {totalParticipantes < 3 ? 'Faltam participantes (mínimo 3).' : 'Acima do máximo permitido.'}
+        </p>
+      )}
+
+      <div className="equipe-membros">
+        {equipe.participantes.length === 0 ? (
+          <p className="empty">Sem membros ainda.</p>
+        ) : (
+          equipe.participantes.map((p) => (
+            <span key={p.id} className="equipe-membro-chip">
+              <span className="equipe-membro-avatar">{iniciais(p.nome)}</span>
+              {p.nome}
+              {podeGerenciar && (
+                <button type="button" onClick={() => onRemover(equipe.id, p.id)} title="Remover da equipe">
+                  ×
+                </button>
+              )}
+            </span>
+          ))
+        )}
+      </div>
+
+      {podeGerenciar && (
+        <form className="equipe-add-membro" onSubmit={handleAdicionar}>
+          <select value={selecionado} onChange={(e) => setSelecionado(e.target.value)} disabled={noLimite}>
+            <option value="">{noLimite ? 'Equipe no limite (5)' : 'Adicionar participante...'}</option>
+            {disponiveis.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.nome}
+              </option>
+            ))}
+          </select>
+          <button type="submit" disabled={noLimite || !selecionado}>+</button>
+        </form>
+      )}
     </div>
   );
 }

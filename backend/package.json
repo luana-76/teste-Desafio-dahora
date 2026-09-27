@@ -1,7 +1,7 @@
 {
   "name": "desafio-dahora-backend",
   "version": "1.0.0",
-  "description": "API de monitoramento de pedidos em tempo real (Express + Prisma + Socket.io)",
+  "description": "API do Sistema Desafio da Hora (REC'n'PLAY) — equipes, desafios, avaliacoes, ranking, cartas bonus e cronometro em tempo real (Express + Prisma + Socket.io)",
   "type": "module",
   "main": "src/index.js",
   "scripts": {
@@ -9,7 +9,11 @@
     "start": "node src/index.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev --name init",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "prisma:seed": "node prisma/seed.js"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   },
   "dependencies": {
     "@prisma/client": "^5.20.0",

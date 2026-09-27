@@ -1,73 +1,54 @@
-// Não existe backend de autenticação neste projeto (só o CRUD de pedidos).
-// Para manter a mesma abordagem que já existia no Perfil (dados guardados
-// no navegador), login e cadastro também vivem aqui, em localStorage.
-// Não é seguro pra produção — é um mock de sessão pra fins do desafio.
+// Autenticação real, via API (backend/src/routes/participantes.routes.js).
+// A sessão em si (quem está logado agora) continua no navegador — só que
+// agora ela guarda o registro que veio do banco, não um usuário inventado
+// no localStorage. Nunca guardamos a senha aqui.
 
-const CHAVE_USUARIOS = 'desafio-dahora:usuarios';
+import api from './api';
+import { reconectarSocket } from './socket';
+
 const CHAVE_SESSAO = 'desafio-dahora:sessao';
 
-function lerUsuarios() {
-  try {
-    return JSON.parse(localStorage.getItem(CHAVE_USUARIOS)) || [];
-  } catch {
-    return [];
-  }
+function salvarSessao(participante) {
+  localStorage.setItem(CHAVE_SESSAO, JSON.stringify(participante));
+  reconectarSocket();
+  return participante;
 }
 
-function salvarUsuarios(usuarios) {
-  localStorage.setItem(CHAVE_USUARIOS, JSON.stringify(usuarios));
+export async function cadastrar({ nome, email, senha, papel }) {
+  const { data } = await api.post('/participantes/cadastro', { nome, email, senha, papel });
+  return salvarSessao(data);
 }
 
-function normalizarEmail(email = '') {
-  return email.trim().toLowerCase();
-}
-
-export function cadastrar({ nome, email, senha }) {
-  const emailNorm = normalizarEmail(email);
-  const usuarios = lerUsuarios();
-
-  if (usuarios.some((u) => u.email === emailNorm)) {
-    throw new Error('Já existe uma conta com esse e-mail.');
-  }
-
-  const usuario = { nome: nome.trim(), email: emailNorm, senha, bio: '' };
-  usuarios.push(usuario);
-  salvarUsuarios(usuarios);
-  localStorage.setItem(CHAVE_SESSAO, emailNorm);
-  return usuario;
-}
-
-export function entrar({ email, senha }) {
-  const emailNorm = normalizarEmail(email);
-  const usuario = lerUsuarios().find((u) => u.email === emailNorm);
-
-  if (!usuario || usuario.senha !== senha) {
-    throw new Error('E-mail ou senha inválidos.');
-  }
-
-  localStorage.setItem(CHAVE_SESSAO, emailNorm);
-  return usuario;
+export async function entrar({ email, senha }) {
+  const { data } = await api.post('/participantes/entrar', { email, senha });
+  return salvarSessao(data);
 }
 
 export function sair() {
   localStorage.removeItem(CHAVE_SESSAO);
+  reconectarSocket();
 }
 
 export function usuarioAtual() {
-  const emailSessao = localStorage.getItem(CHAVE_SESSAO);
-  if (!emailSessao) return null;
-  return lerUsuarios().find((u) => u.email === emailSessao) || null;
+  try {
+    return JSON.parse(localStorage.getItem(CHAVE_SESSAO)) || null;
+  } catch {
+    return null;
+  }
 }
 
-export function atualizarUsuarioAtual(dados) {
+export async function atualizarUsuarioAtual({ nome, bio }) {
   const atual = usuarioAtual();
   if (!atual) return null;
+  const { data } = await api.patch(`/participantes/${atual.id}`, { nome, bio });
+  return salvarSessao({ ...atual, ...data });
+}
 
-  const usuarios = lerUsuarios();
-  const index = usuarios.findIndex((u) => u.email === atual.email);
-  if (index === -1) return null;
-
-  usuarios[index] = { ...usuarios[index], ...dados };
-  salvarUsuarios(usuarios);
-  return usuarios[index];
+// Chamada sempre que uma equipe muda (participante entrou/saiu) pra manter
+// a sessão local em dia com a equipe atual.
+export async function recarregarSessao() {
+  const atual = usuarioAtual();
+  if (!atual) return null;
+  const { data } = await api.get(`/participantes/${atual.id}`);
+  return salvarSessao({ ...atual, ...data });
 }

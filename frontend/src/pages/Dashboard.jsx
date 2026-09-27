@@ -1,112 +1,124 @@
-import { useEffect, useState, useCallback } from 'react';
-import api from '../services/api';
+import { useEffect, useState } from 'react';
+import { usuarioAtual } from '../services/auth';
+import { listarDesafios } from '../services/desafios';
+import { rankingGeral } from '../services/ranking';
+import { listarCartas } from '../services/cartas';
 import socket from '../services/socket';
-import OrderColumn from '../components/OrderColumn';
-import { STATUS_FLOW } from '../constants/orderStatus';
+import { DESAFIO_STATUS_ICON, DESAFIO_STATUS_LABELS } from '../constants/desafioStatus';
 
+const TOTAL_DESAFIOS = 36;
+
+// Dashboard do participante — seção 26 do documento: minha equipe,
+// pontuação total, posição no ranking, desafio atual, tempo restante,
+// desafios concluídos, progresso, cartas bônus.
 export default function Dashboard() {
-  const [orders, setOrders] = useState([]);
-  const [connected, setConnected] = useState(socket.connected);
+  const usuario = usuarioAtual();
+  const [desafioAtual, setDesafioAtual] = useState(null);
+  const [minhaEquipeRanking, setMinhaEquipeRanking] = useState(null);
+  const [cartas, setCartas] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(null);
 
-  useEffect(() => {
-    api
-      .get('/orders')
-      .then((res) => {
-        // Proteção: se a API responder algo que não é uma lista (ex: URL
-        // errada apontando para outro serviço, HTML de erro, etc.), não
-        // deixamos isso quebrar a tela inteira.
-        if (Array.isArray(res.data)) {
-          setOrders(res.data);
-        } else {
-          console.error('Resposta inesperada de GET /orders:', res.data);
-          setErro('O servidor respondeu algo inesperado. Confira a URL configurada em VITE_API_URL.');
-        }
+  function carregar() {
+    setCarregando(true);
+    Promise.all([
+      listarDesafios({ status: 'EM_ANDAMENTO' }),
+      rankingGeral(),
+      usuario?.equipeId ? listarCartas({ equipeId: usuario.equipeId }) : Promise.resolve([]),
+    ])
+      .then(([emAndamento, ranking, cartasEquipe]) => {
+        setDesafioAtual(emAndamento[0] || null);
+        setMinhaEquipeRanking(usuario?.equipeId ? ranking.find((r) => r.equipeId === usuario.equipeId) : null);
+        setCartas(cartasEquipe);
+        setErro(null);
       })
-      .catch(() => setErro('Não foi possível carregar os pedidos. Verifique se o backend está rodando.'))
+      .catch(() => setErro('Não foi possível carregar o painel. Verifique se o backend está rodando.'))
       .finally(() => setCarregando(false));
+  }
 
-    function handleCreated(order) {
-      setOrders((prev) => [order, ...prev]);
-    }
-    function handleUpdated(updated) {
-      setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
-    }
-    function handleDeleted({ id }) {
-      setOrders((prev) => prev.filter((o) => o.id !== id));
-    }
-    function handleConnect() {
-      setConnected(true);
-    }
-    function handleDisconnect() {
-      setConnected(false);
-    }
-
-    socket.on('order:created', handleCreated);
-    socket.on('order:updated', handleUpdated);
-    socket.on('order:deleted', handleDeleted);
-    socket.on('connect', handleConnect);
-    socket.on('disconnect', handleDisconnect);
-
+  useEffect(() => {
+    carregar();
+    socket.on('desafio:updated', carregar);
+    socket.on('avaliacao:registrada', carregar);
+    socket.on('carta:registrada', carregar);
     return () => {
-      socket.off('order:created', handleCreated);
-      socket.off('order:updated', handleUpdated);
-      socket.off('order:deleted', handleDeleted);
-      socket.off('connect', handleConnect);
-      socket.off('disconnect', handleDisconnect);
+      socket.off('desafio:updated', carregar);
+      socket.off('avaliacao:registrada', carregar);
+      socket.off('carta:registrada', carregar);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const createOrder = useCallback(async (data) => {
-    await api.post('/orders', data);
-    // A atualização da lista chega via evento "order:created" do socket
-  }, []);
-
-  const editOrder = useCallback(async (id, data) => {
-    await api.patch(`/orders/${id}`, data);
-  }, []);
-
-  const advanceOrder = useCallback(async (id, status) => {
-    await api.patch(`/orders/${id}/status`, { status });
-  }, []);
-
-  const deleteOrder = useCallback(async (id) => {
-    await api.delete(`/orders/${id}`);
-  }, []);
-
-  const columns = STATUS_FLOW;
+  const progresso = minhaEquipeRanking?.desafiosConcluidos ?? 0;
 
   return (
     <div className="dashboard" id="topo">
-      <header>
-        <h1>Painel do Desafio</h1>
-        <span className={`status-dot ${connected ? 'online' : 'offline'}`}>
-          {connected ? '● Ao vivo' : '● Desconectado'}
-        </span>
-      </header>
+      <section className="hero">
+        <div className="hero-text">
+          <h1>Desafio da Hora</h1>
+          <p>36 desafios, 3 dias, 1 hora por rodada. Acompanhe sua equipe e o desafio da vez.</p>
 
-      {erro && <p className="error-banner">{erro}</p>}
-      {carregando ? (
-        <p className="loading">Carregando pedidos...</p>
-      ) : (
-        <div className="board-canvas">
-          <div className="board">
-            {columns.map((status) => (
-              <div id={`coluna-${status}`} key={status} className="board-slot">
-                <OrderColumn
-                  status={status}
-                  orders={orders.filter((o) => o.status === status)}
-                  onEdit={editOrder}
-                  onDelete={deleteOrder}
-                  onCreate={status === 'PENDENTE' ? createOrder : undefined}
-                  onMove={advanceOrder}
-                />
-              </div>
-            ))}
+          <div className="hero-actions">
+            <a className="btn btn-primary" href="#/ranking">Ver ranking</a>
+            <a className="btn btn-outline" href="#/desafios">Ver desafios</a>
+          </div>
+
+          <div className="hero-stats">
+            <div>
+              <strong>{minhaEquipeRanking?.pontuacao ?? 0}</strong>
+              <span>Pontos (geral)</span>
+            </div>
+            <div>
+              <strong>{minhaEquipeRanking ? `#${minhaEquipeRanking.posicao}` : '—'}</strong>
+              <span>Posição no ranking</span>
+            </div>
+            <div>
+              <strong>{progresso}/{TOTAL_DESAFIOS}</strong>
+              <span>Desafios concluídos</span>
+            </div>
           </div>
         </div>
-      )}
+
+        <aside className="hero-card">
+          <div className="hero-card-art" aria-hidden="true">
+            <span className="hero-orb" />
+          </div>
+          <div className="hero-card-info">
+            <div>
+              <small>Minha equipe</small>
+              <span>{usuario?.equipe?.nome || 'Sem equipe ainda'}</span>
+            </div>
+            <div>
+              <small>Cartas bônus usadas</small>
+              <strong>{cartas.length}</strong>
+            </div>
+            <a className="btn btn-primary btn-sm" href="#/equipes">Ver equipes</a>
+          </div>
+        </aside>
+      </section>
+
+      <section className="board-section" id="desafio-atual">
+        <h2 className="section-title">Desafio da hora</h2>
+
+        {erro && <p className="error-banner">{erro}</p>}
+        {carregando ? (
+          <p className="loading" style={{textAlign: 'center'}}>Carregando...</p>
+        ) : desafioAtual ? (
+          <div className="desafio-card" style={{ maxWidth: 420 }}>
+            <div className="desafio-card-topo">
+              <span className="desafio-pontos-badge">
+                {DESAFIO_STATUS_ICON[desafioAtual.status]} {DESAFIO_STATUS_LABELS[desafioAtual.status]}
+              </span>
+              <span className="desafio-prazo">Dia {desafioAtual.dia} · #{desafioAtual.numero}</span>
+            </div>
+            <p className="desafio-titulo">{desafioAtual.titulo}</p>
+            {desafioAtual.descricao && <p className="desafio-descricao">{desafioAtual.descricao}</p>}
+            {desafioAtual.instrucoes && <p className="desafio-descricao">{desafioAtual.instrucoes}</p>}
+          </div>
+        ) : (
+          <p className="empty" style={{textAlign: 'center'}}>Nenhum desafio em andamento agora. Acompanhe a aba "Desafios".</p>
+        )}
+      </section>
     </div>
   );
 }

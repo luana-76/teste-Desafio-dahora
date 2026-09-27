@@ -1,4 +1,11 @@
-// Schema do Prisma - Monitoramento de Pedidos em Tempo Real
+// Schema do Prisma — Sistema Desafio da Hora (REC'n'PLAY)
+//
+// Modelo alinhado à documentação oficial da oficina:
+// - Equipes (3 a 5 participantes, identificadas por cor)
+// - Participantes com papel (PARTICIPANTE | MONITOR | ADMIN)
+// - 36 desafios (12 por dia, em 3 dias), cada um com um ciclo de status
+// - Avaliação por 6 critérios (máx. 170 pontos por desafio)
+// - Cartas bônus (Aula, Mentor, Dica)
 
 generator client {
   provider = "prisma-client-js"
@@ -9,18 +16,167 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Status possíveis (controlados em src/utils/orderStatus.js):
-// PENDENTE -> EM_PREPARO -> PRONTO -> ENTREGUE
-// PENDENTE/EM_PREPARO/PRONTO -> CANCELADO
-model Order {
-  id         String   @id @default(uuid())
-  cliente    String
-  itens      String
-  valor      Float    @default(0)
-  status     String   @default("PENDENTE")
-  observacao String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+// ── Equipes ──────────────────────────────────────────────────────────────
+// Regra do documento (seção 9): cada equipe deve ter entre 3 e 5
+// participantes. O mínimo de 3 não é forçável no momento da criação (toda
+// equipe nasce vazia), mas o máximo de 5 é validado em
+// participantes.service.js ao vincular alguém a uma equipe.
+model Equipe {
+  id        String   @id @default(uuid())
+  nome      String
+  cor       String
+  createdAt DateTime @default(now())
 
+  participantes Participante[]
+  avaliacoes    Avaliacao[]
+  cartas        CartaBonus[]
+  quadroColunas QuadroColuna[]
+  ajustesPontos AjustePontos[]
+
+  @@index([cor])
+}
+
+// ── Participantes ────────────────────────────────────────────────────────
+// Três perfis de acesso (seção 15): Participante, Monitor e
+// Administrador/Organização. O papel determina o que a API permite fazer
+// (ver middleware de autorização em utils/autorizacao.js).
+model Participante {
+  id            String   @id @default(uuid())
+  nome          String
+  email         String   @unique
+  senha         String
+  identificador String?  @unique // código/QR usado no lugar do login, se aplicável
+  papel         String   @default("PARTICIPANTE") // PARTICIPANTE | MONITOR | ADMIN
+  status        String   @default("ATIVO")
+  bio           String?
+  equipeId      String?
+  equipe        Equipe?  @relation(fields: [equipeId], references: [id])
+  createdAt     DateTime @default(now())
+
+  @@index([equipeId])
+}
+
+// ── Desafios ─────────────────────────────────────────────────────────────
+// 36 desafios no total, 12 por dia (seção 10). Cada um passa pelo ciclo de
+// status descrito na seção 19: BLOQUEADO -> DISPONIVEL -> EM_ANDAMENTO ->
+// EM_AVALIACAO -> FINALIZADO.
+model Desafio {
+  id            String    @id @default(uuid())
+  numero        Int       @unique
+  titulo        String
+  descricao     String?
+  categoria     String?
+  instrucoes    String?
+  dia           Int // 1, 2 ou 3 — ver seção 10
+  horarioInicio DateTime?
+  horarioFim    DateTime?
+  status        String    @default("BLOQUEADO")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  avaliacoes    Avaliacao[]
+  cartas        CartaBonus[]
+  quadroCartoes QuadroCartao[]
+
+  @@index([dia])
   @@index([status])
+}
+
+// ── Avaliações ───────────────────────────────────────────────────────────
+// Um registro por (desafio, equipe). Os 6 critérios e seus tetos vêm da
+// seção 6 do documento — a soma nunca deve ultrapassar 170.
+model Avaliacao {
+  id       String @id @default(uuid())
+  desafioId String
+  desafio   Desafio @relation(fields: [desafioId], references: [id])
+  equipeId  String
+  equipe    Equipe  @relation(fields: [equipeId], references: [id])
+
+  conclusao       Int @default(0) // máx. 50
+  criatividade    Int @default(0) // máx. 20
+  inovacao        Int @default(0) // máx. 20
+  apresentacao    Int @default(0) // máx. 10
+  conclusaoRapida Int @default(0) // máx. 40 ("conclusão em menos tempo")
+  usoIA           Int @default(0) // máx. 30 ("utilização responsável de IA")
+
+  pontuacaoTotal Int @default(0) // soma dos 6 critérios, máx. 170
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([desafioId, equipeId])
+  @@index([equipeId])
+}
+
+// ── Cartas bônus ─────────────────────────────────────────────────────────
+// Seções 5 e 30: Aula, Mentor e Dica. Cada uso custa 10 minutos do tempo da
+// equipe e deve ficar registrado (equipe, carta, rodada/desafio, horário,
+// tempo utilizado, benefício e responsável pelo registro).
+model CartaBonus {
+  id             String    @id @default(uuid())
+  equipeId       String
+  equipe         Equipe    @relation(fields: [equipeId], references: [id])
+  desafioId      String?
+  desafio        Desafio?  @relation(fields: [desafioId], references: [id])
+  tipo           String // AULA | MENTOR | DICA
+  tempoUtilizado Int       @default(10)
+  beneficio      String?
+  responsavel    String?
+  horario        DateTime  @default(now())
+
+  @@index([equipeId])
+}
+
+// ── Quadro estilo Trello (organização da equipe em torno dos desafios) ─────
+// Não vem do documento — é uma ferramenta extra pra cada equipe se organizar
+// durante a competição. Cada equipe tem seu próprio quadro com 3 colunas
+// padrão (Pendente / Andamento / Concluído). Ao abrir o quadro pela
+// primeira vez, um cartão é criado automaticamente em "Pendente" para cada
+// um dos 36 desafios (ver popularCartoesDosDesafios em quadro.service.js) —
+// a equipe arrasta os cartões conforme avança. Também é possível criar
+// cartões extras à mão (sem desafioId), pra anotações e tarefas soltas.
+model QuadroColuna {
+  id       String @id @default(uuid())
+  equipeId String
+  equipe   Equipe @relation(fields: [equipeId], references: [id], onDelete: Cascade)
+  nome     String
+  ordem    Int    @default(0)
+
+  cartoes QuadroCartao[]
+
+  @@index([equipeId])
+}
+
+model QuadroCartao {
+  id        String       @id @default(uuid())
+  colunaId  String
+  coluna    QuadroColuna @relation(fields: [colunaId], references: [id], onDelete: Cascade)
+  titulo    String
+  descricao String?
+  cor       String? // etiqueta colorida (chave da paleta de cores), escolhida pelo usuário
+  desafioId String? // presente quando o cartão representa um dos 36 desafios oficiais
+  desafio   Desafio?     @relation(fields: [desafioId], references: [id], onDelete: SetNull)
+  ordem     Int          @default(0)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([colunaId])
+  @@index([desafioId])
+}
+
+// ── Ajustes manuais de pontuação ────────────────────────────────────────
+// Usado pelo Administrador para dar (ou remover) pontos de uma equipe fora
+// do fluxo normal de avaliação de desafios (bônus, correção de um erro de
+// lançamento etc). Não tem dia nem desafio associados, então só entra no
+// ranking GERAL (ver rankingGeral/rankingAgregado em ranking.service.js).
+model AjustePontos {
+  id          String   @id @default(uuid())
+  equipeId    String
+  equipe      Equipe   @relation(fields: [equipeId], references: [id], onDelete: Cascade)
+  pontos      Int // positivo para dar pontos, negativo para remover
+  motivo      String?
+  responsavel String? // id do participante (ADMIN) que aplicou o ajuste
+  createdAt   DateTime @default(now())
+
+  @@index([equipeId])
 }

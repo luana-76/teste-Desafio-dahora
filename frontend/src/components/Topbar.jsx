@@ -1,5 +1,5 @@
 import CountdownTimer from './CountdownTimer';
-import PontoWidget from './PontoWidget';
+import PontosWidget from './PontosWidget';
 import { usuarioAtual } from '../services/auth';
 
 export default function Topbar() {
@@ -9,7 +9,7 @@ export default function Topbar() {
     <div className="topbar">
       <CountdownTimer />
 
-      <PontoWidget usuario={usuario} />
+      <PontosWidget usuario={usuario} />
 
       <a href="#/perfil" className="avatar" title="Meu perfil" aria-label="Ir para meu perfil">
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
