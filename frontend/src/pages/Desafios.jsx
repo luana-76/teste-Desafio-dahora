@@ -15,13 +15,22 @@ import { listarEquipes } from '../services/equipes';
 import { listarAvaliacoes, registrarAvaliacao } from '../services/avaliacoes';
 import { listarCartas, registrarCarta, TIPOS_CARTA } from '../services/cartas';
 import {
-  DESAFIO_STATUS_FLOW,
   DESAFIO_STATUS_ICON,
   DESAFIO_STATUS_LABELS,
   PROXIMA_ACAO,
   DIAS,
 } from '../constants/desafioStatus';
 import { CRITERIOS, PONTUACAO_MAXIMA } from '../constants/criteriosAvaliacao';
+
+// Colunas do Kanban. Não há coluna "Disponível": um desafio liberado pelo
+// admin (status DISPONIVEL) continua aparecendo na primeira coluna, com o
+// selo 🟢 e o botão de iniciar, até ser colocado em andamento.
+const COLUNAS_KANBAN = [
+  { status: 'BLOQUEADO', titulo: 'Bloqueado / Liberado', icone: '🔒' },
+  { status: 'EM_ANDAMENTO', titulo: DESAFIO_STATUS_LABELS.EM_ANDAMENTO, icone: DESAFIO_STATUS_ICON.EM_ANDAMENTO },
+  { status: 'EM_AVALIACAO', titulo: DESAFIO_STATUS_LABELS.EM_AVALIACAO, icone: DESAFIO_STATUS_ICON.EM_AVALIACAO },
+  { status: 'FINALIZADO', titulo: DESAFIO_STATUS_LABELS.FINALIZADO, icone: DESAFIO_STATUS_ICON.FINALIZADO },
+];
 
 export default function Desafios() {
   const usuario = usuarioAtual();
@@ -31,7 +40,6 @@ export default function Desafios() {
   const [desafios, setDesafios] = useState([]);
   const [equipes, setEquipes] = useState([]);
   const [diaAtivo, setDiaAtivo] = useState(1);
-  const [visualizacao, setVisualizacao] = useState('kanban'); // 'kanban' | 'lista'
   const [desafioAberto, setDesafioAberto] = useState(null);
   const [avaliacoes, setAvaliacoes] = useState([]);
   const [cartas, setCartas] = useState([]);
@@ -79,8 +87,11 @@ export default function Desafios() {
   );
 
   const colunasKanban = useMemo(() => {
-    const grupos = Object.fromEntries(DESAFIO_STATUS_FLOW.map((status) => [status, []]));
-    desafiosDoDia.forEach((d) => grupos[d.status]?.push(d));
+    const grupos = Object.fromEntries(COLUNAS_KANBAN.map((c) => [c.status, []]));
+    desafiosDoDia.forEach((d) => {
+      const coluna = d.status === 'DISPONIVEL' ? 'BLOQUEADO' : d.status;
+      grupos[coluna]?.push(d);
+    });
     return grupos;
   }, [desafiosDoDia]);
 
@@ -134,7 +145,6 @@ export default function Desafios() {
     <div className="dashboard desafios">
       <header>
         <h1>Desafios</h1>
-        <p className="page-subtitle">36 desafios, 12 por dia — 60 minutos cada (10 de explicação, 40 de execução, 10 de apresentação).</p>
       </header>
 
       <div className="equipes-toolbar">
@@ -153,21 +163,6 @@ export default function Desafios() {
             {formAberto ? 'Cancelar' : '+ Novo desafio'}
           </button>
         )}
-        <span style={{ flex: 1 }} />
-        <button
-          type="button"
-          className={`btn ${visualizacao === 'kanban' ? 'btn-primary' : 'btn-outline'} btn-sm`}
-          onClick={() => setVisualizacao('kanban')}
-        >
-          🗂️ Kanban
-        </button>
-        <button
-          type="button"
-          className={`btn ${visualizacao === 'lista' ? 'btn-primary' : 'btn-outline'} btn-sm`}
-          onClick={() => setVisualizacao('lista')}
-        >
-          📋 Lista
-        </button>
       </div>
 
       {formAberto && (
@@ -205,90 +200,58 @@ export default function Desafios() {
 
       {erro && !formAberto && <p className="error-banner">{erro}</p>}
 
-      {visualizacao === 'kanban' ? (
-        <div className="board board-section">
-          {DESAFIO_STATUS_FLOW.map((status) => {
-            const itens = colunasKanban[status];
-            return (
-              <div key={status} className="board-slot">
-                <div className="order-column">
-                  <div className="order-column-header">
-                    <h2>
-                      {DESAFIO_STATUS_ICON[status]} {DESAFIO_STATUS_LABELS[status]}
-                    </h2>
-                    <span className="count">{itens.length}</span>
-                  </div>
-                  <div className="order-column-list">
-                    {itens.length === 0 && <p className="empty">Nenhum desafio aqui.</p>}
-                    {itens.map((desafio) => (
-                      <DesafioCard
-                        key={desafio.id}
-                        desafio={desafio}
-                        aberto={desafioAberto?.id === desafio.id}
-                        podeGerenciar={podeGerenciar}
-                        onToggle={() => setDesafioAberto(desafioAberto?.id === desafio.id ? null : desafio)}
-                        onAcao={() => handleAcao(desafio)}
-                        onExcluir={() => handleExcluir(desafio.id)}
-                        onEditar={(dados) => handleEditar(desafio.id, dados)}
-                      >
-                        {desafioAberto?.id === desafio.id && (
-                          <DetalhesDesafio
-                            desafio={desafio}
-                            equipes={equipes}
-                            avaliacoes={avaliacoes}
-                            cartas={cartas}
-                            podeAvaliar={podeAvaliar}
-                            usuario={usuario}
-                            onAvaliar={carregar}
-                            onCarta={carregar}
-                          />
-                        )}
-                      </DesafioCard>
-                    ))}
-                  </div>
+      <div className="board board-section">
+        {COLUNAS_KANBAN.map(({ status, titulo, icone }) => {
+          const itens = colunasKanban[status];
+          return (
+            <div key={status} className="board-slot">
+              <div className="order-column">
+                <div className="order-column-header">
+                  <h2>
+                    {icone} {titulo}
+                  </h2>
+                  <span className="count">{itens.length}</span>
+                </div>
+                <div className="order-column-list">
+                  {itens.length === 0 && <p className="empty">Nenhum desafio aqui.</p>}
+                  {itens.map((desafio) => (
+                    <DesafioCard
+                      key={desafio.id}
+                      desafio={desafio}
+                      aberto={desafioAberto?.id === desafio.id}
+                      podeGerenciar={podeGerenciar}
+                      onToggle={() => setDesafioAberto(desafioAberto?.id === desafio.id ? null : desafio)}
+                      onAcao={() => handleAcao(desafio)}
+                      onExcluir={() => handleExcluir(desafio.id)}
+                      onEditar={(dados) => handleEditar(desafio.id, dados)}
+                    >
+                      {desafioAberto?.id === desafio.id && (
+                        <DetalhesDesafio
+                          desafio={desafio}
+                          equipes={equipes}
+                          avaliacoes={avaliacoes}
+                          cartas={cartas}
+                          podeAvaliar={podeAvaliar}
+                          usuario={usuario}
+                          onAvaliar={carregar}
+                          onCarta={carregar}
+                        />
+                      )}
+                    </DesafioCard>
+                  ))}
                 </div>
               </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="desafios-board">
-          {desafiosDoDia.length === 0 && <p className="empty">Nenhum desafio cadastrado para este dia ainda.</p>}
-          {desafiosDoDia.map((desafio) => (
-            <DesafioCard
-              key={desafio.id}
-              desafio={desafio}
-              aberto={desafioAberto?.id === desafio.id}
-              podeGerenciar={podeGerenciar}
-              onToggle={() => setDesafioAberto(desafioAberto?.id === desafio.id ? null : desafio)}
-              onAcao={() => handleAcao(desafio)}
-              onExcluir={() => handleExcluir(desafio.id)}
-              onEditar={(dados) => handleEditar(desafio.id, dados)}
-            >
-              {desafioAberto?.id === desafio.id && (
-                <DetalhesDesafio
-                  desafio={desafio}
-                  equipes={equipes}
-                  avaliacoes={avaliacoes}
-                  cartas={cartas}
-                  podeAvaliar={podeAvaliar}
-                  usuario={usuario}
-                  onAvaliar={carregar}
-                  onCarta={carregar}
-                />
-              )}
-            </DesafioCard>
-          ))}
-        </div>
-      )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
-// Um único card, reaproveitado tanto na visão em Lista quanto dentro de
-// cada coluna do Kanban (seção 19 — o card "anda" de coluna conforme o
-// status avança: Bloqueado → Disponível → Em andamento → Em avaliação →
-// Finalizado).
+// Card de desafio, usado dentro de cada coluna do Kanban (seção 19 — o card
+// "anda" de coluna conforme o status avança: Bloqueado/Liberado → Em
+// andamento → Em avaliação → Finalizado).
 function DesafioCard({ desafio, aberto, podeGerenciar, onToggle, onAcao, onExcluir, onEditar, children }) {
   const proximaAcao = podeGerenciar ? PROXIMA_ACAO[desafio.status] : null;
   const [editando, setEditando] = useState(false);

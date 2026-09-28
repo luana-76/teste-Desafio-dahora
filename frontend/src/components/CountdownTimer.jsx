@@ -79,7 +79,7 @@ export default function CountdownTimer() {
         {!rodando ? (
           <>
             <span className="countdown-label">
-              {podeControlar ? 'Cronômetro parado' : 'Aguardando início'}
+              {podeControlar ? '00:00' : '00:00'}
             </span>
             {!podeControlar && (
               <span className="countdown-time countdown-time-preview">

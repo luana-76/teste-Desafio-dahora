@@ -13,7 +13,7 @@ import {
 } from '../services/equipes';
 import { listarParticipantes } from '../services/participantes';
 import { PALETA_CORES } from '../utils/paletaCores';
-import { iniciais } from '../utils/avatar';
+import { iniciais, corAvatar } from '../utils/avatar';
 
 // Equipe de exemplo, só para preencher a tela quando ainda não existe
 // nenhuma outra equipe real além da do usuário logado — não vem do banco,
@@ -115,7 +115,7 @@ export default function Equipes() {
     if (!participanteId) return;
     try {
       await adicionarParticipante(equipeId, participanteId);
-      carregar();
+      await carregar();
     } catch (err) {
       setErroGeral(err.response?.data?.error || err.message);
     }
@@ -134,10 +134,7 @@ export default function Equipes() {
     <div className="dashboard equipes">
       <header>
         <h1>Equipes</h1>
-        <p className="page-subtitle">
-          Cada equipe tem entre {LIMITE_MIN_PARTICIPANTES} e {LIMITE_MAX_PARTICIPANTES} participantes e uma cor
-          própria (seção 9 do documento).
-        </p>
+        
       </header>
 
       {podeGerenciar && (
@@ -240,20 +237,12 @@ export default function Equipes() {
 }
 
 function EquipeCard({ equipe, podeGerenciar, disponiveis, onAdicionar, onRemover, onExcluir, onAtualizar, destaque = false }) {
-  const [selecionado, setSelecionado] = useState('');
   const [editando, setEditando] = useState(false);
   const [nomeEdicao, setNomeEdicao] = useState(equipe.nome);
   const [corEdicao, setCorEdicao] = useState(equipe.cor);
   const corInfo = PALETA_CORES.find((c) => c.chave === equipe.cor) || { hex: equipe.cor, nome: equipe.cor };
   const totalParticipantes = equipe.participantes?.length ?? 0;
   const noLimite = totalParticipantes >= 5;
-
-  function handleAdicionar(e) {
-    e.preventDefault();
-    if (!selecionado) return;
-    onAdicionar(equipe.id, selecionado);
-    setSelecionado('');
-  }
 
   function handleSalvarEdicao(e) {
     e.preventDefault();
@@ -347,17 +336,109 @@ function EquipeCard({ equipe, podeGerenciar, disponiveis, onAdicionar, onRemover
       </div>
 
       {podeGerenciar && (
-        <form className="equipe-add-membro" onSubmit={handleAdicionar}>
-          <select value={selecionado} onChange={(e) => setSelecionado(e.target.value)} disabled={noLimite}>
-            <option value="">{noLimite ? 'Equipe no limite (5)' : 'Adicionar participante...'}</option>
-            {disponiveis.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.nome}
-              </option>
-            ))}
-          </select>
-          <button type="submit" disabled={noLimite || !selecionado}>+</button>
-        </form>
+        <AdicionarMembro
+          totalParticipantes={totalParticipantes}
+          limite={5}
+          disponiveis={disponiveis}
+          onAdicionar={(participanteId) => onAdicionar(equipe.id, participanteId)}
+        />
+      )}
+    </div>
+  );
+}
+
+// Seletor de participantes: em vez do <select> nativo, abre um painel dentro
+// do próprio card com busca, avatar e um clique pra adicionar. Fica embutido
+// (não flutuante) porque o card corta o que passa da borda.
+function AdicionarMembro({ totalParticipantes, limite, disponiveis, onAdicionar }) {
+  const [aberto, setAberto] = useState(false);
+  const [busca, setBusca] = useState('');
+  const [adicionandoId, setAdicionandoId] = useState(null);
+  const noLimite = totalParticipantes >= limite;
+
+  // Fecha sozinho quando a equipe enche.
+  useEffect(() => {
+    if (noLimite) setAberto(false);
+  }, [noLimite]);
+
+  const termo = busca.trim().toLowerCase();
+  const filtrados = disponiveis.filter(
+    (p) => !termo || p.nome.toLowerCase().includes(termo) || (p.email || '').toLowerCase().includes(termo),
+  );
+
+  async function escolher(id) {
+    setAdicionandoId(id);
+    try {
+      await onAdicionar(id);
+      setBusca('');
+    } finally {
+      setAdicionandoId(null);
+    }
+  }
+
+  return (
+    <div className={`add-membro${aberto ? ' add-membro-aberto' : ''}`}>
+      <div className="add-membro-vagas" aria-label={`${totalParticipantes} de ${limite} vagas ocupadas`}>
+        <div className="add-membro-pontos">
+          {Array.from({ length: limite }).map((_, i) => (
+            <span key={i} className={`add-membro-ponto${i < totalParticipantes ? ' cheio' : ''}`} />
+          ))}
+        </div>
+        <span>{totalParticipantes}/{limite} vagas</span>
+      </div>
+
+      <button
+        type="button"
+        className="add-membro-toggle"
+        onClick={() => setAberto((v) => !v)}
+        disabled={noLimite}
+        aria-expanded={aberto}
+      >
+        <span className="add-membro-toggle-icone">{aberto ? '×' : '+'}</span>
+        {noLimite ? 'Equipe completa' : aberto ? 'Fechar' : 'Adicionar participante'}
+      </button>
+
+      {aberto && (
+        <div className="add-membro-painel">
+          <div className="add-membro-busca">
+            <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+              <circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" strokeWidth="2" />
+              <path d="M16 16l4.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+            <input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar por nome ou e-mail"
+              autoFocus
+            />
+          </div>
+
+          <ul className="add-membro-lista">
+            {filtrados.length === 0 ? (
+              <li className="add-membro-vazio">
+                {disponiveis.length === 0 ? 'Todos os participantes já estão em uma equipe.' : 'Ninguém encontrado.'}
+              </li>
+            ) : (
+              filtrados.map((p, i) => (
+                <li key={p.id} style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}>
+                  <button
+                    type="button"
+                    className="add-membro-item"
+                    onClick={() => escolher(p.id)}
+                    disabled={adicionandoId !== null}
+                  >
+                    <span className={`add-membro-item-avatar cor-${corAvatar(p.nome)}`}>{iniciais(p.nome)}</span>
+                    <span className="add-membro-item-info">
+                      <strong>{p.nome}</strong>
+                      {p.email && <small>{p.email}</small>}
+                    </span>
+                    <span className="add-membro-item-acao">{adicionandoId === p.id ? '...' : 'Adicionar'}</span>
+                  </button>
+                </li>
+              ))
+            )}
+          </ul>
+        </div>
       )}
     </div>
   );

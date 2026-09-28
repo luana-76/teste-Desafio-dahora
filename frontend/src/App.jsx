@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import Dashboard from './pages/Dashboard';
+import AdminHome from './pages/AdminHome';
 import Ranking from './pages/Ranking';
 import Equipes from './pages/Equipes';
 import Desafios from './pages/Desafios';
@@ -76,6 +77,8 @@ export default function App() {
           <Desafios />
         ) : isQuadro && usuario?.papel !== 'ADMIN' ? (
           <Quadro />
+        ) : usuario?.papel === 'ADMIN' ? (
+          <AdminHome />
         ) : (
           <Dashboard />
         )}
