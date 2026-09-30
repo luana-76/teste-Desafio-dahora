@@ -6,6 +6,7 @@ import Equipes from './pages/Equipes';
 import Desafios from './pages/Desafios';
 import Quadro from './pages/Quadro';
 import Perfil from './pages/Perfil';
+import Cartas from './pages/Cartas';
 import Auth from './pages/Auth';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -23,6 +24,7 @@ export default function App() {
   const isDesafios = hash.startsWith('#/desafios');
   const isQuadro = hash.startsWith('#/quadro');
   const isPerfil = hash.startsWith('#/perfil');
+  const isCartas = hash.startsWith('#/cartas');
   const isAuth = hash.startsWith('#/entrar') || !usuario;
 
   // Sem sessão ativa, manda sempre pra tela de login/cadastro.
@@ -43,12 +45,12 @@ export default function App() {
   // Quando o hash aponta pra uma âncora dentro do painel (ex: #coluna-PRONTO),
   // rola até ela assim que o painel estiver montado na tela.
   useEffect(() => {
-    if (isAuth || isRanking || isEquipes || isDesafios || isQuadro || isPerfil) return;
+    if (isAuth || isRanking || isEquipes || isDesafios || isQuadro || isPerfil || isCartas) return;
     const id = hash.replace('#', '');
     if (!id) return;
     const alvo = document.getElementById(id);
     if (alvo) alvo.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, [hash, isAuth, isRanking, isEquipes, isDesafios, isQuadro, isPerfil]);
+  }, [hash, isAuth, isRanking, isEquipes, isDesafios, isQuadro, isPerfil, isCartas]);
 
   if (isAuth) {
     return (
@@ -69,6 +71,8 @@ export default function App() {
         <Topbar />
         {isPerfil ? (
           <Perfil />
+        ) : isCartas ? (
+          <Cartas />
         ) : isRanking ? (
           <Ranking />
         ) : isEquipes ? (

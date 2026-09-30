@@ -16,7 +16,7 @@ export async function index(req, res) {
 
 export async function store(req, res) {
   try {
-    const carta = await cartasService.registrarUso(req.body);
+    const carta = await cartasService.registrarUso(req.body, req.usuario);
     emitCartaRegistrada(carta);
     res.status(201).json(carta);
   } catch (err) {

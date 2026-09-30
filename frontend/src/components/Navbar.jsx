@@ -4,6 +4,7 @@ const NAV_LINKS = [
   { href: '#topo', label: 'Painel' },
   { href: '#/equipes', label: 'Equipes' },
   { href: '#/desafios', label: 'Desafios' },
+  { href: '#/cartas', label: 'Cartas' },
   { href: '#/quadro', label: 'Quadro' },
   { href: '#/ranking', label: 'Ranking' },
   { href: '#/perfil', label: 'Perfil' },
