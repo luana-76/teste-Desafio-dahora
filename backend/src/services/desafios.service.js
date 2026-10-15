@@ -1,5 +1,6 @@
 import prisma from '../utils/prisma.js';
 import { DESAFIO_STATUSES, isValidStatus, podeAvancarPara } from '../utils/desafioStatus.js';
+import { textoObrigatorio, textoOpcional, validarId } from '../utils/validacao.js';
 
 // 36 desafios no total, 12 por dia (seção 10 do documento).
 const TOTAL_DESAFIOS = 36;
@@ -23,6 +24,7 @@ export async function listarDesafios({ dia, status } = {}) {
 }
 
 export async function getDesafioById(id) {
+  validarId(id, 'ID do desafio');
   const desafio = await prisma.desafio.findUnique({ where: { id } });
   if (!desafio) notFound();
   return desafio;
@@ -32,11 +34,10 @@ export async function criarDesafio({ numero, titulo, descricao, categoria, instr
   const numeroFinal = Number(numero);
   const diaFinal = Number(dia);
 
-  if (!titulo?.trim()) {
-    const err = new Error('Dê um título para o desafio.');
-    err.status = 400;
-    throw err;
-  }
+  const tituloFinal = textoObrigatorio(titulo, 'Título do desafio', { minimo: 3, maximo: 160 });
+  const descricaoFinal = textoOpcional(descricao, 'Descrição', 3000);
+  const categoriaFinal = textoOpcional(categoria, 'Categoria', 100);
+  const instrucoesFinal = textoOpcional(instrucoes, 'Instruções', 5000);
   if (!Number.isInteger(numeroFinal) || numeroFinal < 1 || numeroFinal > TOTAL_DESAFIOS) {
     const err = new Error(`O número do desafio deve ser entre 1 e ${TOTAL_DESAFIOS} (seção 1).`);
     err.status = 400;
@@ -76,6 +77,10 @@ export async function criarDesafio({ numero, titulo, descricao, categoria, instr
 
 export async function atualizarDesafio(id, { titulo, descricao, categoria, instrucoes }) {
   await getDesafioById(id);
+  if (titulo !== undefined) titulo = textoObrigatorio(titulo, 'Título do desafio', { minimo: 3, maximo: 160 });
+  if (descricao !== undefined) descricao = textoOpcional(descricao, 'Descrição', 3000);
+  if (categoria !== undefined) categoria = textoOpcional(categoria, 'Categoria', 100);
+  if (instrucoes !== undefined) instrucoes = textoOpcional(instrucoes, 'Instruções', 5000);
   return prisma.desafio.update({
     where: { id },
     data: {

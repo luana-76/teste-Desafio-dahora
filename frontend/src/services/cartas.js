@@ -6,6 +6,21 @@ export async function listarCartas({ equipeId } = {}) {
   return data;
 }
 
+export async function listarCartasDesbloqueadas() {
+  const { data } = await api.get('/cartas/desbloqueadas');
+  return data;
+}
+
+export async function resgatarCodigoCarta(codigo) {
+  const { data } = await api.post('/cartas/desbloquear', { codigo });
+  return data;
+}
+
+export async function gerarCodigoCarta(tipo) {
+  const { data } = await api.post('/cartas/codigos', { tipo });
+  return data;
+}
+
 export async function registrarCarta(dados) {
   const { data } = await api.post('/cartas', dados);
   return data;

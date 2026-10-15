@@ -1,5 +1,6 @@
 import prisma from '../utils/prisma.js';
 import { getEquipeById } from './equipes.service.js';
+import { textoObrigatorio, textoOpcional, validarId, numeroInteiro } from '../utils/validacao.js';
 
 // Quadro estilo Trello, organizado em torno dos 36 desafios oficiais. Cada
 // equipe tem seu próprio quadro (colunas e cartões ordenados por "ordem").
@@ -45,6 +46,7 @@ async function popularCartoesDosDesafios(equipeId, colunas) {
 // Garante que toda equipe tenha um quadro com as 3 colunas padrão e um
 // cartão por desafio na primeira vez que alguém abrir a tela.
 export async function listarQuadro(equipeId) {
+  validarId(equipeId, 'ID da equipe');
   await getEquipeById(equipeId);
 
   const buscarColunas = () =>
@@ -70,6 +72,7 @@ export async function listarQuadro(equipeId) {
 
 export async function criarColuna(equipeId, { nome }) {
   await getEquipeById(equipeId);
+  nome = textoObrigatorio(nome, 'Nome da coluna', { minimo: 1, maximo: 60 });
   if (!nome?.trim()) {
     const err = new Error('Dê um nome para a coluna.');
     err.status = 400;
@@ -91,6 +94,7 @@ async function getColuna(id) {
 
 export async function renomearColuna(id, { nome }) {
   await getColuna(id);
+  nome = textoObrigatorio(nome, 'Nome da coluna', { minimo: 1, maximo: 60 });
   if (!nome?.trim()) {
     const err = new Error('Dê um nome para a coluna.');
     err.status = 400;
@@ -104,20 +108,20 @@ export async function excluirColuna(id) {
   await prisma.quadroColuna.delete({ where: { id } }); // cartões somem em cascata
 }
 
-export async function criarCartao(colunaId, { titulo, descricao, cor }) {
-  const coluna = await getColuna(colunaId);
-  if (!titulo?.trim()) {
-    const err = new Error('Dê um título para o cartão.');
-    err.status = 400;
-    throw err;
-  }
+export async function criarCartao(colunaId, { titulo, descricao, cor, criadoPor }) {
+  await getColuna(colunaId);
+  titulo = textoObrigatorio(titulo, 'Título do cartão', { minimo: 2, maximo: 120 });
+  descricao = textoObrigatorio(descricao, 'Descrição do cartão', { minimo: 5, maximo: 2000 });
+  cor = textoOpcional(cor, 'Cor do cartão', 40);
+  criadoPor = textoOpcional(criadoPor, 'Criador do cartão', 100);
 
   const ultimo = await prisma.quadroCartao.findFirst({ where: { colunaId }, orderBy: { ordem: 'desc' } });
   return prisma.quadroCartao.create({
     data: {
       colunaId,
-      titulo: titulo.trim(),
-      descricao: descricao?.trim() || null,
+      titulo,
+      descricao,
+      criadoPor: criadoPor || null,
       cor: cor || null,
       ordem: (ultimo?.ordem ?? -1) + 1,
     },
@@ -133,6 +137,9 @@ async function getCartao(id) {
 
 export async function editarCartao(id, { titulo, descricao, cor }) {
   await getCartao(id);
+  if (titulo !== undefined) titulo = textoObrigatorio(titulo, 'Título do cartão', { minimo: 2, maximo: 120 });
+  if (descricao !== undefined) descricao = textoObrigatorio(descricao, 'Descrição do cartão', { minimo: 5, maximo: 2000 });
+  if (cor !== undefined) cor = textoOpcional(cor, 'Cor do cartão', 40);
   return prisma.quadroCartao.update({
     where: { id },
     data: {

@@ -1,5 +1,6 @@
 import prisma from '../utils/prisma.js';
 import { PAPEIS } from '../utils/autorizacao.js';
+import { textoObrigatorio, textoOpcional, validarEmail, erroValidacao, validarId } from '../utils/validacao.js';
 
 // Sem hashing de senha nesta versão do desafio (não é o foco do exercício
 // e não há uma camada de segurança/HTTPS definida). Ainda assim, a senha
@@ -10,28 +11,14 @@ function semSenha(participante) {
   return resto;
 }
 
-function normalizarEmail(email = '') {
-  return email.trim().toLowerCase();
-}
+function normalizarEmail(email = '') { return validarEmail(email); }
+
 
 export async function cadastrar({ nome, email, senha, papel }) {
-  const nomeFinal = nome?.trim();
+  const nomeFinal = textoObrigatorio(nome, 'Nome', { minimo: 2, maximo: 100 });
   const emailFinal = normalizarEmail(email);
-
-  if (!nomeFinal) {
-    const err = new Error('Digite seu nome.');
-    err.status = 400;
-    throw err;
-  }
-  if (!emailFinal) {
-    const err = new Error('Digite seu e-mail.');
-    err.status = 400;
-    throw err;
-  }
-  if (!senha || senha.length < 4) {
-    const err = new Error('A senha precisa de pelo menos 4 caracteres.');
-    err.status = 400;
-    throw err;
+  if (typeof senha !== 'string' || senha.length < 8 || senha.length > 128) {
+    throw erroValidacao('A senha deve ter entre 8 e 128 caracteres.');
   }
 
   const existente = await prisma.participante.findUnique({ where: { email: emailFinal } });
@@ -55,6 +42,7 @@ export async function cadastrar({ nome, email, senha, papel }) {
 
 export async function entrar({ email, senha }) {
   const emailFinal = normalizarEmail(email);
+  if (typeof senha !== 'string' || !senha) throw erroValidacao('Informe sua senha.');
   const participante = await prisma.participante.findUnique({
     where: { email: emailFinal },
     include: { equipe: true },
@@ -79,6 +67,7 @@ export async function listarParticipantes({ equipeId } = {}) {
 }
 
 export async function getParticipanteById(id) {
+  validarId(id, 'ID do participante');
   const participante = await prisma.participante.findUnique({ where: { id }, include: { equipe: true } });
   if (!participante) {
     const err = new Error('Participante não encontrado.');
@@ -90,6 +79,8 @@ export async function getParticipanteById(id) {
 
 export async function atualizarPerfil(id, { nome, bio }) {
   await getParticipanteById(id);
+  if (nome !== undefined) nome = textoObrigatorio(nome, 'Nome', { minimo: 2, maximo: 100 });
+  if (bio !== undefined) bio = textoOpcional(bio, 'Biografia', 500);
   const participante = await prisma.participante.update({
     where: { id },
     data: {
@@ -110,6 +101,8 @@ export async function atualizarPapel(id, papel) {
     throw err;
   }
   await getParticipanteById(id);
+  if (nome !== undefined) nome = textoObrigatorio(nome, 'Nome', { minimo: 2, maximo: 100 });
+  if (bio !== undefined) bio = textoOpcional(bio, 'Biografia', 500);
   const participante = await prisma.participante.update({ where: { id }, data: { papel } });
   return semSenha(participante);
 }

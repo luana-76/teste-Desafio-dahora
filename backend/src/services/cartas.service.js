@@ -1,5 +1,8 @@
+import { randomInt } from 'node:crypto';
 import prisma from '../utils/prisma.js';
 import { getEquipeById } from './equipes.service.js';
+import { textoObrigatorio, textoOpcional, validarId } from '../utils/validacao.js';
+import { getDesafioById } from './desafios.service.js';
 
 // Cartas bônus — seções 5 e 30. Cada uso custa 10 minutos do tempo da
 // equipe e precisa ficar registrado: equipe, carta, rodada (desafio),
@@ -8,7 +11,11 @@ const TIPOS_VALIDOS = ['AULA', 'MENTOR', 'DICA'];
 const TEMPO_PADRAO_MINUTOS = 10;
 
 export async function registrarUso({ equipeId, desafioId, tipo, beneficio, responsavel }, usuario = {}) {
-  const equipe = await getEquipeById(equipeId);
+  const equipeIdFinal = validarId(equipeId, 'ID da equipe');
+  await getEquipeById(equipeIdFinal);
+  if (desafioId) { validarId(desafioId, 'ID do desafio'); await getDesafioById(desafioId); }
+  beneficio = textoOpcional(beneficio, 'Benefício', 500);
+  responsavel = textoOpcional(responsavel, 'Responsável', 100);
 
   // Participantes podem ativar cartas somente para a própria equipe.
   // ADMIN/MONITOR continuam podendo registrar o uso em qualquer equipe.
@@ -20,6 +27,20 @@ export async function registrarUso({ equipeId, desafioId, tipo, beneficio, respo
       throw err;
     }
     responsavel = participante.nome;
+    const tipoSolicitado = typeof tipo === 'string' ? tipo.trim().toUpperCase() : '';
+    if (!TIPOS_VALIDOS.includes(tipoSolicitado)) {
+      const err = new Error(`Tipo de carta inválido. Use um dos: ${TIPOS_VALIDOS.join(', ')}`);
+      err.status = 400;
+      throw err;
+    }
+    const desbloqueio = await prisma.cartaDesbloqueio.findUnique({
+      where: { participanteId_tipo: { participanteId: usuario.id, tipo: tipoSolicitado } },
+    });
+    if (!desbloqueio) {
+      const err = new Error('Você precisa desbloquear esta carta com um código antes de usá-la.');
+      err.status = 403;
+      throw err;
+    }
   }
 
   const tipoFinal = tipo?.trim().toUpperCase();
@@ -36,12 +57,12 @@ export async function registrarUso({ equipeId, desafioId, tipo, beneficio, respo
 
   return prisma.cartaBonus.create({
     data: {
-      equipeId,
+      equipeId: equipeIdFinal,
       desafioId: desafioId || null,
       tipo: tipoFinal,
       tempoUtilizado: TEMPO_PADRAO_MINUTOS,
-      beneficio: beneficio?.trim() || null,
-      responsavel: responsavel.trim(),
+      beneficio: beneficio || null,
+      responsavel,
     },
   });
 }
@@ -55,3 +76,46 @@ export async function listarCartas({ equipeId } = {}) {
 }
 
 export { TIPOS_VALIDOS };
+
+
+const CODIGOS_ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function gerarCodigo() {
+  let codigo = '';
+  for (let i = 0; i < 10; i += 1) codigo += CODIGOS_ALFABETO[randomInt(CODIGOS_ALFABETO.length)];
+  return `${codigo.slice(0, 5)}-${codigo.slice(5)}`;
+}
+
+export async function listarDesbloqueios(participanteId) {
+  if (!participanteId) { const err = new Error('Faça login para consultar suas cartas.'); err.status = 401; throw err; }
+  return prisma.cartaDesbloqueio.findMany({ where: { participanteId }, orderBy: { desbloqueadaEm: 'desc' } });
+}
+
+export async function resgatarCodigo({ codigo }, usuario = {}) {
+  if (!usuario.id || usuario.papel !== 'PARTICIPANTE') { const err = new Error('Entre como participante para resgatar um código.'); err.status = 403; throw err; }
+  const codigoNormalizado = textoObrigatorio(codigo, 'Código', { minimo: 3, maximo: 30 }).toUpperCase().replace(/\s/g, '');
+  const registro = await prisma.codigoCarta.findUnique({ where: { codigo: codigoNormalizado } });
+  if (!registro) { const err = new Error('Código inválido. Confira e tente novamente.'); err.status = 404; throw err; }
+  if (registro.usado) { const err = new Error('Este código já foi utilizado.'); err.status = 409; throw err; }
+  const jaTem = await prisma.cartaDesbloqueio.findUnique({ where: { participanteId_tipo: { participanteId: usuario.id, tipo: registro.tipo } } });
+  if (jaTem) { const err = new Error('Você já desbloqueou esse tipo de carta.'); err.status = 409; throw err; }
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const atualizacao = await tx.codigoCarta.updateMany({ where: { id: registro.id, usado: false }, data: { usado: true, usadoPorId: usuario.id, usadoEm: new Date() } });
+      if (atualizacao.count !== 1) { const err = new Error('Este código já foi utilizado.'); err.status = 409; throw err; }
+      return tx.cartaDesbloqueio.create({ data: { participanteId: usuario.id, tipo: registro.tipo, codigo: registro.codigo } });
+    });
+  } catch (err) {
+    if (err.code === 'P2002') { const e = new Error('Você já desbloqueou esse tipo de carta.'); e.status = 409; throw e; }
+    throw err;
+  }
+}
+
+export async function criarCodigo({ tipo }) {
+  const tipoFinal = typeof tipo === 'string' ? tipo.trim().toUpperCase() : '';
+  if (!TIPOS_VALIDOS.includes(tipoFinal)) { const err = new Error(`Tipo inválido. Use: ${TIPOS_VALIDOS.join(', ')}.`); err.status = 400; throw err; }
+  for (let tentativa = 0; tentativa < 5; tentativa += 1) {
+    try { return await prisma.codigoCarta.create({ data: { codigo: gerarCodigo(), tipo: tipoFinal } }); }
+    catch (err) { if (err.code !== 'P2002') throw err; }
+  }
+  const err = new Error('Não foi possível gerar um código único. Tente novamente.'); err.status = 500; throw err;
+}

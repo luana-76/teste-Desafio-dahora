@@ -1,4 +1,5 @@
 import prisma from '../utils/prisma.js';
+import { textoObrigatorio, validarId } from '../utils/validacao.js';
 
 const MIN_PARTICIPANTES = 3;
 const MAX_PARTICIPANTES = 5;
@@ -24,29 +25,23 @@ export async function listarEquipes() {
 }
 
 export async function getEquipeById(id) {
+  validarId(id, 'ID da equipe');
   const equipe = await prisma.equipe.findUnique({ where: { id }, include: { participantes: true } });
   if (!equipe) notFound('Equipe não encontrada.');
   return equipe;
 }
 
 export async function criarEquipe({ nome, cor }) {
-  const nomeFinal = nome?.trim();
-  if (!nomeFinal) {
-    const err = new Error('Dê um nome para a equipe.');
-    err.status = 400;
-    throw err;
-  }
-  if (!cor?.trim()) {
-    const err = new Error('Escolha uma cor para identificar a equipe (seção 9 do documento).');
-    err.status = 400;
-    throw err;
-  }
+  const nomeFinal = textoObrigatorio(nome, 'Nome da equipe', { minimo: 2, maximo: 80 });
+  const corFinal = textoObrigatorio(cor, 'Cor da equipe', { minimo: 2, maximo: 40 });
 
-  return prisma.equipe.create({ data: { nome: nomeFinal, cor: cor.trim() } });
+  return prisma.equipe.create({ data: { nome: nomeFinal, cor: corFinal } });
 }
 
 export async function atualizarEquipe(id, { nome, cor }) {
   await getEquipeById(id);
+  if (nome !== undefined) nome = textoObrigatorio(nome, 'Nome da equipe', { minimo: 2, maximo: 80 });
+  if (cor !== undefined) cor = textoObrigatorio(cor, 'Cor da equipe', { minimo: 2, maximo: 40 });
 
   if (nome !== undefined && !nome?.trim()) {
     const err = new Error('Dê um nome para a equipe.');

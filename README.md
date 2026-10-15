@@ -177,3 +177,28 @@ domínio de dados):
 - Integração com a roleta física (é um dispositivo físico, seção 8).
 
 Conta: adminLMA2026@senac.br.com / senacLMA2026@
+
+## Backend: validações adicionadas
+
+O backend inclui validação de entradas e tratamento de erros:
+- JSON inválido retorna HTTP 400; corpo acima de 1 MB retorna HTTP 413.
+- Corpo de endpoints deve ser um objeto JSON, não array ou valor primitivo.
+- Cadastro valida nome, formato de e-mail e senha entre 8 e 128 caracteres; e-mail é normalizado.
+- Equipes validam nome/cor e limites de tamanho.
+- Desafios validam título, descrição, categoria, instruções, número e dia.
+- Cartas validam equipe, desafio, tipo, benefício e responsável.
+- Cartões do quadro exigem título e descrição e registram o nome do criador identificado pelo backend.
+- Erros conhecidos do Prisma (duplicidade e registro inexistente) retornam 409/404 em vez de erro genérico.
+
+### Preparar e executar
+
+Na pasta `backend`:
+```bash
+npm install
+npx prisma generate
+npx prisma db push
+npm run prisma:seed
+npm run dev
+```
+
+A API usa SQLite conforme `DATABASE_URL` no arquivo `.env`. Antes de compartilhar o projeto, não publique credenciais reais e mantenha o `.env` fora do Git.

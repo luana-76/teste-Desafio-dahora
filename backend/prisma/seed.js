@@ -6,6 +6,7 @@
 // organização deve editá-los pelo painel administrativo antes do evento
 // (PATCH /desafios/:id).
 import { PrismaClient } from '@prisma/client';
+import 'dotenv/config';
 
 const prisma = new PrismaClient();
 

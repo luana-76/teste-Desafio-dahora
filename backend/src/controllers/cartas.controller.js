@@ -23,3 +23,19 @@ export async function store(req, res) {
     handleError(res, err);
   }
 }
+
+
+export async function desbloqueadas(req, res) {
+  try { res.json(await cartasService.listarDesbloqueios(req.usuario?.id)); }
+  catch (err) { handleError(res, err); }
+}
+
+export async function resgatar(req, res) {
+  try { res.status(201).json(await cartasService.resgatarCodigo(req.body, req.usuario)); }
+  catch (err) { handleError(res, err); }
+}
+
+export async function criarCodigo(req, res) {
+  try { res.status(201).json(await cartasService.criarCodigo(req.body)); }
+  catch (err) { handleError(res, err); }
+}

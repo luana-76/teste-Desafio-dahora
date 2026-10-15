@@ -81,7 +81,11 @@ export async function criarCartao(req, res) {
     const { equipeId } = req.body;
     if (!equipeId) return semEquipeId(res);
     if (!(await podeEditar(req, equipeId))) return proibido(res);
-    const cartao = await quadroService.criarCartao(req.params.colunaId, req.body);
+    let criadoPor = null;
+    if (req.usuario?.id) {
+      try { criadoPor = (await participantesService.getParticipanteById(req.usuario.id)).nome; } catch { /* ID inválido é tratado como criador ausente */ }
+    }
+    const cartao = await quadroService.criarCartao(req.params.colunaId, { ...req.body, criadoPor });
     emitQuadroAtualizado(equipeId);
     res.status(201).json(cartao);
   } catch (err) {

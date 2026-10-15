@@ -52,6 +52,7 @@ model Participante {
   equipeId      String?
   equipe        Equipe?  @relation(fields: [equipeId], references: [id])
   createdAt     DateTime @default(now())
+  cartasDesbloqueadas CartaDesbloqueio[]
 
   @@index([equipeId])
 }
@@ -127,6 +128,33 @@ model CartaBonus {
   @@index([equipeId])
 }
 
+
+// Códigos distribuídos pela organização para liberar cartas específicas.
+model CodigoCarta {
+  id          String   @id @default(uuid())
+  codigo      String   @unique
+  tipo        String   // AULA | MENTOR | DICA
+  usado       Boolean  @default(false)
+  usadoPorId  String?
+  usadoEm     DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([tipo, usado])
+}
+
+// Cartas liberadas por participante após resgatar um código válido.
+model CartaDesbloqueio {
+  id             String       @id @default(uuid())
+  participanteId String
+  participante   Participante @relation(fields: [participanteId], references: [id], onDelete: Cascade)
+  tipo           String       // AULA | MENTOR | DICA
+  codigo         String
+  desbloqueadaEm DateTime     @default(now())
+
+  @@unique([participanteId, tipo])
+  @@index([participanteId])
+}
+
 // ── Quadro estilo Trello (organização da equipe em torno dos desafios) ─────
 // Não vem do documento — é uma ferramenta extra pra cada equipe se organizar
 // durante a competição. Cada equipe tem seu próprio quadro com 3 colunas
@@ -153,6 +181,7 @@ model QuadroCartao {
   coluna    QuadroColuna @relation(fields: [colunaId], references: [id], onDelete: Cascade)
   titulo    String
   descricao String?
+  criadoPor String? // nome do participante que criou o cartão
   cor       String? // etiqueta colorida (chave da paleta de cores), escolhida pelo usuário
   desafioId String? // presente quando o cartão representa um dos 36 desafios oficiais
   desafio   Desafio?     @relation(fields: [desafioId], references: [id], onDelete: SetNull)

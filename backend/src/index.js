@@ -11,6 +11,7 @@ import cartasRoutes from './routes/cartas.routes.js';
 import quadroRoutes from './routes/quadro.routes.js';
 import { identificarUsuario } from './utils/autorizacao.js';
 import { initSocket } from './socket.js';
+import { validarObjetoBody, tratarErroGlobal } from './utils/validacao.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -41,7 +42,8 @@ function origemPermitida(origin, callback) {
 }
 
 app.use(cors({ origin: origemPermitida }));
-app.use(express.json());
+app.use(express.json({ limit: '1mb', strict: true }));
+app.use(validarObjetoBody);
 app.use(identificarUsuario);
 
 app.get('/health', (req, res) => {
@@ -61,6 +63,9 @@ app.use('/quadro', quadroRoutes);
 app.use((req, res) => {
   res.status(404).json({ error: 'Rota não encontrada.' });
 });
+
+// Erros do parser JSON, limites de payload e erros não tratados.
+app.use(tratarErroGlobal);
 
 initSocket(server, origemPermitida);
 
