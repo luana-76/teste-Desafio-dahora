@@ -124,7 +124,10 @@ model CartaBonus {
   beneficio      String?
   responsavel    String?
   horario        DateTime  @default(now())
+  // Chave de dia no fuso America/Recife, usada para limitar um tipo por equipe/dia.
+  diaUso         String?
 
+  @@unique([equipeId, tipo, diaUso])
   @@index([equipeId])
 }
 

@@ -80,8 +80,18 @@ export default function Dashboard() {
         </div>
 
         <aside className="hero-card">
-          <div className="hero-card-art" aria-hidden="true">
-            <span className="hero-orb" />
+          <div className="hero-card-art dashboard-mascot-art" aria-label="Mascote animado do Desafio Dahora">
+            <div className="dashboard-mascot-stage">
+              <div className="mascot-orbit mascot-orbit-a" />
+              <div className="mascot-orbit mascot-orbit-b" />
+              <div className="mascot-platform"><span /></div>
+              <div className="mascot-spark mascot-spark-one">✦</div>
+              <div className="mascot-spark mascot-spark-two">✧</div>
+              <div className="mascot-spark mascot-spark-three">+</div>
+              <img className="dh-mascot dh-robot-mascot" src="/mascote-dahora.svg" alt="Dahora, robô mascote do Desafio Dahora, acenando" />
+              <div className="mascot-hud mascot-hud-left"><span>XP</span><strong>+250</strong><i /></div>
+              <div className="mascot-hud mascot-hud-right"><span>MISSÃO</span><strong>EM EQUIPE</strong><i /></div>
+            </div>
           </div>
           <div className="hero-card-info">
             <div>

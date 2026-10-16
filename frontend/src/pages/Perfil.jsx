@@ -11,6 +11,7 @@ export default function Perfil() {
   const [nomeRascunho, setNomeRascunho] = useState(usuario?.nome || '');
   const [bioRascunho, setBioRascunho] = useState(usuario?.bio || '');
   const [minhaEquipeRanking, setMinhaEquipeRanking] = useState(null);
+  const ehOrganizacao = usuario?.papel === 'ADMIN';
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(null);
 
@@ -18,6 +19,11 @@ export default function Perfil() {
     recarregarSessao()
       .then((atualizado) => atualizado && setUsuario(atualizado))
       .catch(() => {});
+
+    if (usuario?.papel === 'ADMIN') {
+      setCarregando(false);
+      return;
+    }
 
     rankingGeral()
       .then((ranking) => setMinhaEquipeRanking(ranking.find((r) => r.equipeId === usuario?.equipeId) || null))
@@ -89,7 +95,18 @@ export default function Perfil() {
       </div>
 
       {erro && <p className="error-banner">{erro}</p>}
-      {carregando ? (
+      {ehOrganizacao ? (
+        <div className="profile-stats profile-stats-organizacao">
+          <div className="profile-stat">
+            <span className="profile-stat-valor">Organização</span>
+            <span className="profile-stat-label">Perfil institucional</span>
+          </div>
+          <div className="profile-stat">
+            <span className="profile-stat-valor">Administração</span>
+            <span className="profile-stat-label">Gestão do evento</span>
+          </div>
+        </div>
+      ) : carregando ? (
         <p className="loading">Carregando...</p>
       ) : (
         <div className="profile-stats">

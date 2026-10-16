@@ -78,10 +78,10 @@ export default function Quadro() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  async function handleNovoCartao(colunaId, titulo, cor) {
+  async function handleNovoCartao(colunaId, titulo, descricao, cor) {
     if (!titulo.trim()) return;
     try {
-      await criarCartao(colunaId, equipeId, { titulo: titulo.trim(), cor });
+      await criarCartao(colunaId, equipeId, { titulo: titulo.trim(), descricao: descricao.trim(), cor });
       carregar(true);
     } catch (err) { setErro(err.response?.data?.error || err.message); }
   }
@@ -158,6 +158,21 @@ export default function Quadro() {
       {carregando ? (
         <div className="trello-loading">Carregando quadro...</div>
       ) : (
+        <>
+        <section className="quadro-tutorial" aria-label="Demonstração de como usar o quadro">
+          <div className="quadro-tutorial-copy">
+            <span className="quadro-tutorial-kicker"><span className="tutorial-live-dot" /> GUIA INTERATIVO</span>
+            <h2>Veja uma tarefa ganhar vida</h2>
+            <p>O cartão de demonstração percorre as etapas automaticamente. Depois, arraste seus próprios cartões para acompanhar o trabalho da equipe.</p>
+          </div>
+          <div className="tutorial-track" aria-label="Exemplo animado passando por Pendente, Andamento e Concluído">
+            <div className="tutorial-track-line" />
+            <div className="tutorial-stage"><span className="tutorial-stage-icon">◷</span><strong>Pendente</strong><small>Planejar</small></div>
+            <div className="tutorial-stage"><span className="tutorial-stage-icon">⚡</span><strong>Andamento</strong><small>Executar</small></div>
+            <div className="tutorial-stage"><span className="tutorial-stage-icon">✓</span><strong>Concluído</strong><small>Entregar</small></div>
+            <div className="tutorial-moving-card"><span className="tutorial-card-spark">✦</span><span><b>EXEMPLO</b><small>Organizar a próxima tarefa</small></span><span className="tutorial-card-check">✓</span></div>
+          </div>
+        </section>
         <div className="trello-canvas">
           <div className="trello-lists trello-lists-fixo">
             {colunasFiltradas.map((coluna) => (
@@ -169,12 +184,13 @@ export default function Quadro() {
                 onDragStart={iniciarArrasto}
                 onIndicarAlvo={indicarAlvo}
                 onSoltar={soltarCartao}
-                onNovoCartao={(titulo, cor) => handleNovoCartao(coluna.id, titulo, cor)}
+                onNovoCartao={(titulo, descricao, cor) => handleNovoCartao(coluna.id, titulo, descricao, cor)}
                 onAbrirCartao={setCartaoSelecionado}
               />
             ))}
           </div>
         </div>
+        </>
       )}
 
       {cartaoSelecionado && (
@@ -194,14 +210,15 @@ export default function Quadro() {
 function ColunaTrello({ coluna, arrastandoId, alvoArrasto, onDragStart, onIndicarAlvo, onSoltar, onNovoCartao, onAbrirCartao }) {
   const [compondo, setCompondo] = useState(false);
   const [titulo, setTitulo] = useState('');
+  const [descricao, setDescricao] = useState('');
   const [cor, setCor] = useState(null);
   const sobre = arrastandoId && alvoArrasto?.colunaId === coluna.id;
 
   function adicionar(e) {
     e.preventDefault();
-    if (!titulo.trim()) return;
-    onNovoCartao(titulo, cor);
-    setTitulo(''); setCor(null); setCompondo(false);
+    if (!titulo.trim() || descricao.trim().length < 5) return;
+    onNovoCartao(titulo, descricao, cor);
+    setTitulo(''); setDescricao(''); setCor(null); setCompondo(false);
   }
 
   return (
@@ -245,9 +262,10 @@ function ColunaTrello({ coluna, arrastandoId, alvoArrasto, onDragStart, onIndica
 
         {compondo ? (
           <form className="trello-card-composer" onSubmit={adicionar}>
-            <input autoFocus value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Digite o título do cartão..." />
+            <input autoFocus value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Título da tarefa..." />
+            <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="O que a equipe está fazendo? (mínimo de 5 caracteres)" rows={3} required minLength={5} />
             <LabelPicker value={cor} onChange={setCor} />
-            <div className="trello-form-actions"><button type="submit">Adicionar cartão</button><button type="button" onClick={() => setCompondo(false)}>×</button></div>
+            <div className="trello-form-actions"><button type="submit" disabled={!titulo.trim() || descricao.trim().length < 5}>Adicionar cartão</button><button type="button" onClick={() => setCompondo(false)}>×</button></div>
           </form>
         ) : (
           <button type="button" className="trello-add-card" onClick={() => setCompondo(true)}>＋ Adicionar um cartão</button>

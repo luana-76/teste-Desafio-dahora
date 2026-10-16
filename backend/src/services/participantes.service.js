@@ -43,7 +43,7 @@ export async function cadastrar({ nome, email, senha, papel }) {
 export async function entrar({ email, senha }) {
   const emailFinal = normalizarEmail(email);
   if (typeof senha !== 'string' || !senha) throw erroValidacao('Informe sua senha.');
-  const participante = await prisma.participante.findUnique({
+  let participante = await prisma.participante.findUnique({
     where: { email: emailFinal },
     include: { equipe: true },
   });
@@ -52,6 +52,15 @@ export async function entrar({ email, senha }) {
     const err = new Error('E-mail ou senha inválidos.');
     err.status = 401;
     throw err;
+  }
+
+  // A conta institucional é independente das equipes; corrige vínculos antigos.
+  if (participante.papel === 'ADMIN' && participante.equipeId) {
+    participante = await prisma.participante.update({
+      where: { id: participante.id },
+      data: { equipeId: null },
+      include: { equipe: true },
+    });
   }
 
   return semSenha(participante);

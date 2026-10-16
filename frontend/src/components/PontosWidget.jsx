@@ -59,7 +59,18 @@ export default function PontosWidget({ usuario }) {
     return () => clearTimeout(t);
   }, [ganho]);
 
-  if (!usuario) return null;
+  // O perfil institucional não participa do ranking de equipes.
+  // Verificamos papel, nome e e-mail para evitar que o widget apareça caso
+  // os dados do perfil venham com variação de caixa ou estejam parcialmente preenchidos.
+  const papel = String(usuario?.papel || '').trim().toUpperCase();
+  const nome = String(usuario?.nome || '').trim().toLowerCase();
+  const email = String(usuario?.email || '').trim().toLowerCase();
+  const ehOrganizacao = papel === 'ADMIN'
+    || nome.includes('organização')
+    || nome.includes('organizacao')
+    || email.startsWith('organizacao@')
+    || email.startsWith('adminlma2026@');
+  if (!usuario || ehOrganizacao) return null;
 
   if (!usuario.equipeId) {
     return (

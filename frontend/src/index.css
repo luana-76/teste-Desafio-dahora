@@ -3400,3 +3400,191 @@ a {
   .add-membro-painel,
   .add-membro-lista li { animation: none; }
 }
+
+
+/* ---------- Animações especiais: tutorial do quadro e portal da home ---------- */
+.quadro-tutorial{
+  position:relative;isolation:isolate;overflow:hidden;display:grid;grid-template-columns:minmax(220px,.78fr) minmax(0,1.5fr);gap:24px;align-items:center;
+  margin:0 14px 18px;padding:22px 24px;border:1px solid rgba(104,133,255,.32);border-radius:20px;
+  background:radial-gradient(ellipse at 12% 0%,rgba(64,111,255,.2),transparent 48%),linear-gradient(125deg,rgba(12,20,66,.97),rgba(14,24,83,.86) 55%,rgba(30,18,89,.92));
+  box-shadow:0 18px 44px rgba(2,5,35,.25),inset 0 1px rgba(255,255,255,.07)
+}
+.quadro-tutorial:before{content:"";position:absolute;inset:0;z-index:-1;opacity:.17;background-image:linear-gradient(rgba(133,158,255,.2) 1px,transparent 1px),linear-gradient(90deg,rgba(133,158,255,.2) 1px,transparent 1px);background-size:28px 28px;mask-image:linear-gradient(90deg,#000,transparent 95%)}
+.quadro-tutorial-copy{max-width:390px}
+.quadro-tutorial-kicker{display:inline-flex;align-items:center;gap:8px;color:#71f3ff;font-size:.68rem;font-weight:850;letter-spacing:.16em}
+.tutorial-live-dot{width:7px;height:7px;border-radius:50%;background:#69ffd0;box-shadow:0 0 12px #69ffd0;animation:tutorial-pulse 1.5s ease-in-out infinite}
+.quadro-tutorial h2{font-family:'Syne','Poppins',sans-serif;font-size:clamp(1.15rem,2vw,1.65rem);line-height:1.15;margin:10px 0;color:#fff;letter-spacing:-.035em}
+.quadro-tutorial p{margin:0;color:#b8c5f4;font-size:.84rem;line-height:1.65}
+.tutorial-track{position:relative;min-height:128px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start;gap:8px;padding-top:4px}
+.tutorial-track-line{position:absolute;left:10%;right:10%;top:28px;height:2px;background:linear-gradient(90deg,#7d8cff,#65eaff,#7dffcf);box-shadow:0 0 12px rgba(87,204,255,.6)}
+.tutorial-stage{position:relative;z-index:1;display:flex;align-items:center;flex-direction:column;gap:5px;text-align:center;color:#eaf0ff;font-size:.76rem}
+.tutorial-stage-icon{display:grid;place-items:center;width:48px;height:48px;border:1px solid rgba(137,163,255,.6);border-radius:15px;background:linear-gradient(145deg,#252d79,#111947);color:#85f2ff;font-size:1.25rem;box-shadow:0 0 20px rgba(82,120,255,.18)}
+.tutorial-stage:nth-of-type(3) .tutorial-stage-icon{color:#8affcf}
+.tutorial-stage strong{font-size:.76rem}
+.tutorial-stage small{font-size:.65rem;color:#899bd8}
+.tutorial-moving-card{position:absolute;z-index:3;top:72px;left:1%;width:31%;min-width:110px;max-width:170px;display:flex;align-items:center;gap:7px;padding:9px 10px;border:1px solid rgba(116,239,255,.7);border-radius:11px;background:linear-gradient(135deg,rgba(30,52,133,.98),rgba(36,28,113,.98));box-shadow:0 8px 25px rgba(0,0,0,.28),0 0 22px rgba(76,213,255,.24);animation:tutorial-card-travel 7.2s cubic-bezier(.45,0,.25,1) infinite}
+.tutorial-moving-card>span:nth-child(2){display:flex;min-width:0;flex-direction:column;gap:3px}
+.tutorial-moving-card b{font-size:.57rem;letter-spacing:.08em;color:#91f5ff}
+.tutorial-moving-card small{font-size:.58rem;line-height:1.25;color:#eef2ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tutorial-card-spark{color:#ffe58a;font-size:.95rem;animation:tutorial-spark 1.4s ease-in-out infinite}
+.tutorial-card-check{margin-left:auto;color:#7dffcb;font-weight:900}
+@keyframes tutorial-card-travel{0%,8%{left:1%;transform:translateY(0) rotate(-2deg)}24%{left:1%;transform:translateY(-5px) rotate(1deg)}38%,48%{left:35%;transform:translateY(0) rotate(1deg)}60%{left:35%;transform:translateY(-5px) rotate(-1deg)}76%,90%{left:68%;transform:translateY(0) rotate(2deg)}100%{left:68%;transform:translateY(-3px) rotate(0)}}
+@keyframes tutorial-pulse{50%{opacity:.45;transform:scale(.75);box-shadow:0 0 4px #69ffd0}}
+@keyframes tutorial-spark{50%{transform:rotate(25deg) scale(1.25);filter:drop-shadow(0 0 5px #ffe58a)}}
+
+/* A antiga esfera dá lugar a um portal neon com núcleo, órbitas e rastros de energia. */
+.portal-art{position:relative;isolation:isolate;overflow:hidden;perspective:700px;background:radial-gradient(ellipse at 50% 46%,#2532a0 0%,#11184e 40%,#070b2c 75%)!important}
+.portal-grid{position:absolute;inset:36% -25% -35%;opacity:.3;transform:rotateX(62deg);transform-origin:top;background-image:linear-gradient(rgba(82,226,255,.38) 1px,transparent 1px),linear-gradient(90deg,rgba(82,226,255,.38) 1px,transparent 1px);background-size:27px 27px;mask-image:linear-gradient(transparent,#000 28%,transparent 95%);animation:portal-grid-drift 8s linear infinite}
+.portal-ring{position:absolute;left:50%;top:43%;border-radius:50%;transform:translate(-50%,-50%) rotateX(64deg) rotateZ(-22deg);pointer-events:none}
+.portal-ring-outer{width:265px;height:265px;border:2px solid rgba(72,224,255,.65);box-shadow:0 0 22px rgba(47,194,255,.5),inset 0 0 24px rgba(47,194,255,.24);animation:portal-spin 12s linear infinite}
+.portal-ring-mid{width:218px;height:218px;border:5px dotted rgba(177,113,255,.85);filter:drop-shadow(0 0 8px rgba(177,113,255,.9));animation:portal-spin-reverse 17s linear infinite}
+.portal-ring-inner{width:169px;height:169px;border:1px solid rgba(125,255,232,.8);box-shadow:0 0 34px rgba(75,247,255,.5),inset 0 0 25px rgba(99,87,255,.7);animation:portal-breathe 3.4s ease-in-out infinite}
+.portal-core{position:absolute;left:50%;top:43%;width:128px;height:128px;display:grid;place-items:center;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle at 35% 28%,#fff 0%,#9ffaff 7%,#4d8dff 25%,#5228c9 52%,#0d124c 75%);box-shadow:0 0 24px #63eaff,0 0 65px rgba(88,79,255,.9),inset -16px -18px 28px rgba(6,9,50,.8);animation:portal-core-float 4s ease-in-out infinite}
+.portal-core:before,.portal-core:after{content:"";position:absolute;inset:-12px;border:1px solid rgba(119,244,255,.8);border-radius:50%;transform:scaleY(.45) rotate(28deg);animation:portal-ring-flash 2.8s ease-in-out infinite}
+.portal-core:after{inset:-23px;transform:scaleY(.38) rotate(-36deg);border-color:rgba(193,124,255,.8);animation-delay:-1.4s}
+.portal-core-mark{font-family:'Syne','Poppins',sans-serif;font-size:2.2rem;font-weight:900;letter-spacing:-.1em;color:#fff;text-shadow:0 0 18px #76f5ff;z-index:2}
+.portal-core-flare{position:absolute;width:180%;height:2px;transform:rotate(-35deg);background:linear-gradient(90deg,transparent,#fff,#7cf7ff,transparent);filter:blur(1px);animation:portal-flare 3s ease-in-out infinite}
+.portal-orbit{position:absolute;left:50%;top:43%;width:280px;height:95px;border:1px solid rgba(106,239,255,.72);border-radius:50%;transform:translate(-50%,-50%) rotate(-28deg);animation:portal-orbit-spin 9s linear infinite;filter:drop-shadow(0 0 6px rgba(89,223,255,.7))}
+.portal-orbit-two{width:245px;height:74px;border-color:rgba(255,119,226,.75);transform:translate(-50%,-50%) rotate(58deg);animation-duration:13s;animation-direction:reverse}
+.portal-orbit i{position:absolute;left:12%;top:7px;width:9px;height:9px;border-radius:50%;background:#bfffff;box-shadow:0 0 13px 4px #50eaff}
+.portal-orbit-two i{left:auto;right:13%;background:#ffd5ff;box-shadow:0 0 13px 4px #e05dff}
+.portal-star{position:absolute;color:#d8fbff;text-shadow:0 0 12px #56eaff;animation:portal-twinkle 2.5s ease-in-out infinite}
+.portal-star-a{left:18%;top:22%;font-size:1.4rem}.portal-star-b{right:19%;top:27%;font-size:1.8rem;animation-delay:-.8s}.portal-star-c{right:25%;bottom:22%;font-size:1.05rem;animation-delay:-1.4s}
+.portal-energy{position:absolute;height:2px;width:95px;background:linear-gradient(90deg,transparent,#a5ffff,transparent);filter:drop-shadow(0 0 5px #56eaff);transform:rotate(-34deg);animation:portal-shoot 4.8s ease-in infinite}
+.portal-energy-one{top:25%;left:8%}.portal-energy-two{top:38%;right:3%;animation-delay:-2s;transform:rotate(145deg)}.portal-energy-three{bottom:26%;left:18%;animation-delay:-3.4s;transform:rotate(18deg)}
+.portal-caption{position:absolute;left:0;right:0;bottom:17px;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}
+.portal-caption span{font-size:.58rem;font-weight:800;letter-spacing:.3em;color:#84f5ff;text-shadow:0 0 10px rgba(84,232,255,.7)}
+.portal-caption b{font-family:'Syne','Poppins',sans-serif;font-size:1.05rem;letter-spacing:.14em;color:white;text-shadow:0 0 18px rgba(98,130,255,.9)}
+@keyframes portal-spin{to{transform:translate(-50%,-50%) rotateX(64deg) rotateZ(338deg)}}
+@keyframes portal-spin-reverse{to{transform:translate(-50%,-50%) rotateX(64deg) rotateZ(-382deg)}}
+@keyframes portal-orbit-spin{to{transform:translate(-50%,-50%) rotate(332deg)}}
+@keyframes portal-breathe{0%,100%{scale:1;opacity:.85}50%{scale:1.08;opacity:1}}
+@keyframes portal-core-float{0%,100%{translate:0 0}50%{translate:0 -8px}}
+@keyframes portal-ring-flash{0%,100%{opacity:.4;scale:.96}50%{opacity:1;scale:1.04}}
+@keyframes portal-flare{0%,100%{opacity:.2;scale:.75}50%{opacity:.95;scale:1.05}}
+@keyframes portal-twinkle{0%,100%{opacity:.35;scale:.7}50%{opacity:1;scale:1.25}}
+@keyframes portal-shoot{0%{opacity:0;translate:-45px 18px}20%{opacity:1}70%{opacity:.7}100%{opacity:0;translate:150px -55px}}
+@keyframes portal-grid-drift{to{background-position:0 27px,27px 0}}
+@media(max-width:760px){.quadro-tutorial{grid-template-columns:1fr;gap:18px;margin:0 10px 14px;padding:19px 17px}.tutorial-track{min-height:132px}.tutorial-moving-card{min-width:92px;padding:8px 6px;gap:4px}.tutorial-moving-card small{font-size:.52rem}.portal-art{height:300px!important}.portal-ring-outer{width:235px;height:235px}.portal-ring-mid{width:192px;height:192px}.portal-ring-inner{width:148px;height:148px}.portal-core{width:112px;height:112px}.portal-orbit{width:250px;height:85px}}
+@media(prefers-reduced-motion:reduce){.tutorial-live-dot,.tutorial-moving-card,.tutorial-card-spark,.portal-grid,.portal-ring,.portal-core,.portal-core:before,.portal-core:after,.portal-core-flare,.portal-orbit,.portal-star,.portal-energy{animation:none!important}}
+
+
+/* ---------- Mascote animado da tela de entrada ---------- */
+.auth-screen { justify-content: center; padding: clamp(18px, 3vw, 48px); }
+.auth-layout { position: relative; z-index: 2; width: min(1180px, 100%); display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(340px, .8fr); align-items: center; gap: clamp(26px, 5vw, 76px); margin: auto; }
+.auth-mascot-panel { min-width: 0; position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; animation: mascot-panel-enter .9s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes mascot-panel-enter { from { opacity: 0; transform: translateX(-28px) scale(.97); } to { opacity: 1; transform: translateX(0) scale(1); } }
+.mascot-kicker { display: inline-flex; align-items: center; gap: 9px; padding: 9px 15px; border: 1px solid rgba(94,231,255,.28); border-radius: 999px; background: rgba(9,20,65,.55); color: #c8f8ff; font: 800 .7rem 'IBM Plex Mono', monospace; letter-spacing: .16em; box-shadow: 0 0 28px rgba(60,220,255,.09), inset 0 0 18px rgba(60,220,255,.04); }
+.mascot-live-dot { width: 7px; height: 7px; border-radius: 50%; background: #55f4c8; box-shadow: 0 0 12px #55f4c8; animation: mascot-live 1.5s ease-in-out infinite; }
+@keyframes mascot-live { 50% { opacity: .4; transform: scale(.7); } }
+.mascot-stage { position: relative; width: min(100%, 440px); height: clamp(310px, 43vh, 420px); display: grid; place-items: center; isolation: isolate; margin: 4px 0 -2px; }
+.mascot-stage::before { content: ''; position: absolute; width: 72%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle, rgba(87,100,255,.27), rgba(36,217,255,.08) 44%, transparent 70%); filter: blur(9px); animation: mascot-core-pulse 4s ease-in-out infinite; z-index: -2; }
+@keyframes mascot-core-pulse { 0%,100% { transform: scale(.9); opacity: .65; } 50% { transform: scale(1.12); opacity: 1; } }
+.dh-mascot { position: relative; z-index: 2; width: min(88%, 340px); height: 100%; overflow: visible; filter: drop-shadow(0 18px 28px rgba(21,12,92,.35)); animation: mascot-float 3.8s ease-in-out infinite; transform-origin: 50% 70%; }
+@keyframes mascot-float { 0%,100% { transform: translateY(3px) rotate(-1deg); } 50% { transform: translateY(-12px) rotate(1.5deg); } }
+.mascot-wave-arm { transform-origin: 224px 178px; animation: mascot-wave 2.8s ease-in-out infinite; }
+@keyframes mascot-wave { 0%,60%,100% { transform: rotate(0); } 67% { transform: rotate(-14deg); } 73% { transform: rotate(9deg); } 79% { transform: rotate(-13deg); } 85% { transform: rotate(4deg); } }
+.mascot-head { transform-origin: 170px 150px; animation: mascot-look 6s ease-in-out infinite; }
+@keyframes mascot-look { 0%,35%,100% { transform: rotate(0); } 43% { transform: rotate(3deg); } 52% { transform: rotate(-3deg); } 60% { transform: rotate(0); } }
+.mascot-pupil { animation: mascot-eyes 5.5s ease-in-out infinite; }
+@keyframes mascot-eyes { 0%,45%,52%,100% { transform: translateX(0); } 48% { transform: translateX(3px); } }
+.mascot-orbit { position: absolute; left: 50%; top: 48%; border: 1px solid rgba(83,222,255,.3); border-radius: 50%; pointer-events: none; }
+.mascot-orbit-a { width: 91%; height: 32%; transform: translate(-50%,-50%) rotate(-24deg); animation: mascot-orbit-spin 12s linear infinite; border-left-color: transparent; border-right-color: rgba(167,103,255,.7); }
+.mascot-orbit-b { width: 82%; height: 25%; transform: translate(-50%,-50%) rotate(33deg); animation: mascot-orbit-spin 9s linear infinite reverse; border-top-color: transparent; border-bottom-color: rgba(89,240,255,.8); }
+@keyframes mascot-orbit-spin { to { rotate: 360deg; } }
+.mascot-platform { position: absolute; bottom: 7%; width: 54%; height: 27px; border: 1px solid rgba(101,238,255,.8); border-radius: 50%; transform: perspective(120px) rotateX(54deg); background: radial-gradient(ellipse, rgba(68,223,255,.3), rgba(81,67,255,.13) 60%, transparent 70%); box-shadow: 0 0 32px rgba(65,217,255,.25); }
+.mascot-platform span { position: absolute; inset: 5px 18%; border-top: 2px solid #7af3ff; border-radius: 50%; filter: drop-shadow(0 0 5px #54e7ff); }
+.mascot-spark { position: absolute; z-index: 3; color: #9af6ff; text-shadow: 0 0 16px #48dfff; animation: mascot-sparkle 2.7s ease-in-out infinite; }
+.mascot-spark-one { top: 16%; left: 17%; font-size: 28px; }
+.mascot-spark-two { top: 32%; right: 13%; font-size: 38px; animation-delay: .8s; }
+.mascot-spark-three { bottom: 25%; left: 15%; color: #c2a3ff; font-size: 25px; animation-delay: 1.3s; }
+@keyframes mascot-sparkle { 0%,100% { opacity: .35; transform: scale(.75) rotate(0); } 50% { opacity: 1; transform: scale(1.15) rotate(20deg); } }
+.mascot-hud { position: absolute; z-index: 4; display: flex; flex-direction: column; gap: 3px; min-width: 100px; padding: 10px 12px; border: 1px solid rgba(100,230,255,.35); border-radius: 12px; background: rgba(7,14,55,.76); backdrop-filter: blur(10px); box-shadow: 0 10px 30px rgba(0,0,0,.2), 0 0 24px rgba(70,210,255,.08); text-align: left; animation: mascot-hud-float 4s ease-in-out infinite; }
+.mascot-hud span { color: #91a6e8; font: 700 .58rem 'IBM Plex Mono', monospace; letter-spacing: .15em; }
+.mascot-hud strong { color: #f5fcff; font: 800 .82rem 'Syne', sans-serif; }
+.mascot-hud i { height: 3px; border-radius: 9px; background: linear-gradient(90deg,#4deaff,#7d62ff); box-shadow: 0 0 10px rgba(77,234,255,.6); }
+.mascot-hud-left { left: 0; top: 34%; transform: rotate(-5deg); }
+.mascot-hud-right { right: 0; bottom: 26%; animation-delay: -1.6s; transform: rotate(4deg); }
+@keyframes mascot-hud-float { 0%,100% { translate: 0 0; } 50% { translate: 0 -9px; } }
+.mascot-copy { max-width: 470px; margin-top: 0; }
+.mascot-eyebrow { margin: 0 0 10px; color: #65eaff; font: 800 .68rem 'IBM Plex Mono', monospace; letter-spacing: .19em; }
+.mascot-copy h1 { margin: 0; color: #fff; font: 900 clamp(2rem,3.4vw,3.4rem)/1.02 'Syne','Poppins',sans-serif; letter-spacing: -.055em; }
+.mascot-copy h1 span { color: transparent; background: linear-gradient(90deg,#65efff,#9d8bff 65%,#e8a5ff); background-clip: text; -webkit-background-clip: text; }
+.mascot-copy > p:last-child { max-width: 39ch; margin: 13px auto 0; color: #aab8ed; font-size: .9rem; line-height: 1.7; }
+.auth-card { max-width: 420px; width: 100%; }
+@media (min-width: 1450px) { .auth-layout { gap: 90px; } .mascot-stage { height: 440px; } }
+@media (max-width: 900px) { .auth-layout { grid-template-columns: minmax(0,1fr) minmax(320px,.9fr); gap: 22px; } .mascot-stage { height: 330px; } .mascot-hud { min-width: 82px; padding: 8px; } .mascot-hud strong { font-size: .7rem; } .mascot-copy h1 { font-size: clamp(1.8rem,4vw,2.6rem); } }
+@media (max-width: 720px) { .auth-screen { align-items: flex-start; overflow-y: auto; padding: 20px 16px 32px; } .auth-layout { grid-template-columns: 1fr; gap: 20px; width: min(100%, 440px); } .auth-mascot-panel { order: 0; } .mascot-kicker { font-size: .6rem; } .mascot-stage { height: 260px; max-width: 350px; margin-top: 0; } .dh-mascot { width: 245px; } .mascot-hud { display: none; } .mascot-spark-one { left: 8%; top: 20%; } .mascot-spark-two { right: 7%; top: 25%; } .mascot-copy h1 { font-size: 2rem; } .mascot-copy > p:last-child { margin-top: 8px; font-size: .82rem; } .mascot-copy { padding: 0 10px; } .auth-card { order: 1; max-width: none; padding: 28px 24px 24px; } }
+@media (max-width: 380px) { .mascot-stage { height: 220px; } .mascot-copy h1 { font-size: 1.7rem; } .auth-card { padding: 24px 18px 20px; } }
+@media (prefers-reduced-motion: reduce) { .auth-mascot-panel, .dh-mascot, .mascot-wave-arm, .mascot-head, .mascot-pupil, .mascot-orbit, .mascot-spark, .mascot-hud, .mascot-live-dot, .mascot-stage::before { animation: none !important; } }
+
+
+/* Mascote também na página inicial do participante (substitui a esfera antiga). */
+.dashboard-mascot-art {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  height: 330px;
+  background:
+    radial-gradient(ellipse at 50% 38%, rgba(79, 91, 255, .48), transparent 48%),
+    radial-gradient(ellipse at 50% 95%, rgba(35, 224, 255, .18), transparent 54%),
+    linear-gradient(145deg, #090f39 0%, #11164e 55%, #21104c 100%) !important;
+}
+.dashboard-mascot-art::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: .16;
+  background-image: linear-gradient(rgba(119, 180, 255, .25) 1px, transparent 1px), linear-gradient(90deg, rgba(119, 180, 255, .25) 1px, transparent 1px);
+  background-size: 24px 24px;
+  mask-image: linear-gradient(transparent, #000 22%, #000 75%, transparent);
+}
+.dashboard-mascot-stage {
+  position: relative;
+  width: 100%;
+  height: 330px;
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+}
+.dashboard-mascot-stage::before {
+  content: "";
+  position: absolute;
+  width: 72%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(87,100,255,.3), rgba(36,217,255,.08) 44%, transparent 70%);
+  filter: blur(8px);
+  animation: mascot-core-pulse 4s ease-in-out infinite;
+  z-index: -1;
+}
+.dashboard-mascot-stage .dh-mascot {
+  width: 245px;
+  max-width: 82%;
+  height: 300px;
+  z-index: 2;
+}
+.dashboard-mascot-stage .mascot-orbit-a { width: 84%; height: 32%; top: 49%; }
+.dashboard-mascot-stage .mascot-orbit-b { width: 76%; height: 25%; top: 49%; }
+.dashboard-mascot-stage .mascot-hud { min-width: 78px; padding: 7px 8px; }
+.dashboard-mascot-stage .mascot-hud-left { left: 5px; top: 29%; }
+.dashboard-mascot-stage .mascot-hud-right { right: 5px; bottom: 23%; }
+.dashboard-mascot-stage .mascot-hud span { font-size: .48rem; }
+.dashboard-mascot-stage .mascot-hud strong { font-size: .62rem; }
+.dashboard-mascot-stage .mascot-spark-one { top: 13%; left: 12%; font-size: 22px; }
+.dashboard-mascot-stage .mascot-spark-two { top: 22%; right: 12%; font-size: 28px; }
+.dashboard-mascot-stage .mascot-spark-three { bottom: 18%; left: 13%; font-size: 20px; }
+@media (max-width: 430px) {
+  .dashboard-mascot-art, .dashboard-mascot-stage { height: 300px; }
+  .dashboard-mascot-stage .dh-mascot { width: 220px; height: 280px; }
+  .dashboard-mascot-stage .mascot-hud { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-mascot-stage::before { animation: none !important; }
+}
+
+
+/* Mascote robô Dahora fornecido pelo projeto. */
+.dh-robot-mascot { object-fit: contain; display: block; }
+.dashboard-mascot-stage .dh-robot-mascot { width: min(100%, 340px); height: 300px; max-width: 100%; }
+@media (max-width: 430px) { .dashboard-mascot-stage .dh-robot-mascot { width: 100%; height: 280px; } }

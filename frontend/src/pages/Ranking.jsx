@@ -98,8 +98,10 @@ export default function Ranking() {
     }
   }
 
-  const top3 = dados.slice(0, 3);
-  const resto = dados.slice(3);
+  // A Organização vê a classificação em lista, sem o pódio/troféu visual.
+  // Participantes continuam vendo o pódio das três primeiras equipes.
+  const top3 = podeAjustarPontos ? [] : dados.slice(0, 3);
+  const resto = podeAjustarPontos ? dados : dados.slice(3);
 
   return (
     <div className="dashboard ranking">
@@ -191,7 +193,7 @@ export default function Ranking() {
         <p className="empty">Nenhuma avaliação registrada ainda para esse filtro.</p>
       ) : (
         <>
-          <RankingPodium top3={top3} />
+          {!podeAjustarPontos && <RankingPodium top3={top3} />}
 
           {resto.length > 0 && (
             <div className="ranking-list">

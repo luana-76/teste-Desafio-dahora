@@ -10,7 +10,20 @@ import { getDesafioById } from './desafios.service.js';
 const TIPOS_VALIDOS = ['AULA', 'MENTOR', 'DICA'];
 const TEMPO_PADRAO_MINUTOS = 10;
 
+function diaAtualRecife() {
+  const partes = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Recife', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date());
+  const valores = Object.fromEntries(partes.map((parte) => [parte.type, parte.value]));
+  return `${valores.year}-${valores.month}-${valores.day}`;
+}
+
 export async function registrarUso({ equipeId, desafioId, tipo, beneficio, responsavel }, usuario = {}) {
+  if (usuario.papel === 'ADMIN') {
+    const err = new Error('O administrador pode consultar o histórico de cartas, mas não registrar o uso em nome de uma equipe.');
+    err.status = 403;
+    throw err;
+  }
   const equipeIdFinal = validarId(equipeId, 'ID da equipe');
   await getEquipeById(equipeIdFinal);
   if (desafioId) { validarId(desafioId, 'ID do desafio'); await getDesafioById(desafioId); }
@@ -55,16 +68,48 @@ export async function registrarUso({ equipeId, desafioId, tipo, beneficio, respo
     throw err;
   }
 
-  return prisma.cartaBonus.create({
-    data: {
+  const diaUso = diaAtualRecife();
+  // Considera também registros antigos, criados antes de existir diaUso.
+  const inicioDiaRecife = new Date(`${diaUso}T00:00:00-03:00`);
+  const amanha = new Date(inicioDiaRecife.getTime() + 24 * 60 * 60 * 1000);
+  const usoHoje = await prisma.cartaBonus.findFirst({
+    where: {
       equipeId: equipeIdFinal,
-      desafioId: desafioId || null,
       tipo: tipoFinal,
-      tempoUtilizado: TEMPO_PADRAO_MINUTOS,
-      beneficio: beneficio || null,
-      responsavel,
+      OR: [
+        { diaUso },
+        { diaUso: null, horario: { gte: inicioDiaRecife, lt: amanha } },
+      ],
     },
+    select: { id: true },
   });
+  if (usoHoje) {
+    const err = new Error(`A equipe já usou a carta ${tipoFinal} hoje. Cada equipe pode usar uma carta de cada tipo por dia.`);
+    err.status = 409;
+    throw err;
+  }
+
+  try {
+    return await prisma.cartaBonus.create({
+      data: {
+        equipeId: equipeIdFinal,
+        desafioId: desafioId || null,
+        tipo: tipoFinal,
+        diaUso,
+        tempoUtilizado: TEMPO_PADRAO_MINUTOS,
+        beneficio: beneficio || null,
+        responsavel,
+      },
+    });
+  } catch (err) {
+    // A restrição única também impede usos duplicados em requisições simultâneas.
+    if (err.code === 'P2002') {
+      const conflito = new Error(`A equipe já usou a carta ${tipoFinal} hoje. Cada equipe pode usar uma carta de cada tipo por dia.`);
+      conflito.status = 409;
+      throw conflito;
+    }
+    throw err;
+  }
 }
 
 export async function listarCartas({ equipeId } = {}) {

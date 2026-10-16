@@ -426,7 +426,7 @@ function DetalhesDesafio({ desafio, equipes, avaliacoes, cartas, podeAvaliar, us
         </ul>
       )}
 
-      {podeAvaliar && equipes.length > 0 && (
+      {podeAvaliar && usuario?.papel !== 'ADMIN' && equipes.length > 0 && (
         <form onSubmit={handleCarta} className="desafio-form">
           <div className="desafio-form-linha">
             <label>

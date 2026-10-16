@@ -59,7 +59,27 @@ export default function Auth({ onAutenticado }) {
       <div className="auth-blob auth-blob-2" aria-hidden="true" />
       <div className="auth-blob auth-blob-3" aria-hidden="true" />
 
-      <div className={`auth-card ${tremer ? 'auth-card-tremer' : ''} ${sucesso ? 'auth-card-sucesso' : ''}`}>
+      <div className="auth-layout">
+        <section className="auth-mascot-panel" aria-label="Mascote do Desafio Dahora">
+          <div className="mascot-kicker"><span className="mascot-live-dot" /> DESAFIO INICIADO</div>
+          <div className="mascot-stage" aria-hidden="true">
+            <div className="mascot-orbit mascot-orbit-a" />
+            <div className="mascot-orbit mascot-orbit-b" />
+            <div className="mascot-platform"><span /></div>
+            <div className="mascot-spark mascot-spark-one">✦</div>
+            <div className="mascot-spark mascot-spark-two">✧</div>
+            <div className="mascot-spark mascot-spark-three">+</div>
+            <img className="dh-mascot dh-robot-mascot" src="/mascote-dahora.svg" alt="Dahora, robô mascote do Desafio Dahora, acenando" />
+            <div className="mascot-hud mascot-hud-left"><span>XP</span><strong>+250</strong><i /></div>
+            <div className="mascot-hud mascot-hud-right"><span>MISSÃO</span><strong>EM EQUIPE</strong><i /></div>
+          </div>
+          <div className="mascot-copy">
+            <p className="mascot-eyebrow">SEU PRÓXIMO NÍVEL COMEÇA AQUI</p>
+            <h1>Jogue junto.<br/><span>Vá mais longe.</span></h1>
+            <p>Desafios, estratégia e trabalho em equipe. Seu personagem já está pronto — só falta você.</p>
+          </div>
+        </section>
+        <div className={`auth-card ${tremer ? 'auth-card-tremer' : ''} ${sucesso ? 'auth-card-sucesso' : ''}`}>
         <div className="auth-card-glow" aria-hidden="true" />
 
         <div className="auth-logo">
@@ -196,6 +216,7 @@ export default function Auth({ onAutenticado }) {
             </p>
           </>
         )}
+        </div>
       </div>
     </div>
   );
